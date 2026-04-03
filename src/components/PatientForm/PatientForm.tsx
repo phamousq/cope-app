@@ -72,29 +72,35 @@ export function PatientForm({ onComplete }: PatientFormProps) {
     try {
       const doc = <COPEDocument {...{ demographics, cancerDetails, treatmentPlan, likelihoodExpectations, survivalWithoutTreatment, prognosisData }} />;
       const blob = await pdf(doc).toBlob();
+
+      // Open a new tab synchronously (within user gesture)
+      const newTab = window.open('about:blank', '_blank');
+      if (!newTab) {
+        setIsGenerating(false);
+        setError('Please allow popups to view the PDF report.');
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
 
-      // Use an iframe to display PDF inline (avoids download + blank tab issues)
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.top = '0';
-      iframe.style.left = '0';
-      iframe.style.width = '100%';
-      iframe.style.height = '100%';
-      iframe.style.border = 'none';
-      iframe.style.zIndex = '9999';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-
-      // Remove iframe after it's been used (user navigates away or closes)
-      iframe.onload = () => {
-        setTimeout(() => {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
-          URL.revokeObjectURL(url);
-        }, 500);
-      };
+      // Write PDF viewer into the new tab
+      newTab.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>COPE Report</title>
+            <style>
+              * { margin: 0; padding: 0; box-sizing: border-box; }
+              html, body { width: 100%; height: 100%; overflow: hidden; }
+              embed { width: 100%; height: 100%; border: none; }
+            </style>
+          </head>
+          <body>
+            <embed src="${url}" type="application/pdf" />
+          </body>
+        </html>
+      `);
+      newTab.document.close();
 
       setIsGenerating(false);
       // Clear form after successful generation
