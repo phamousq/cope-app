@@ -72,22 +72,28 @@ export function PatientForm({ onComplete }: PatientFormProps) {
     try {
       const doc = <COPEDocument {...{ demographics, cancerDetails, treatmentPlan, likelihoodExpectations, survivalWithoutTreatment, prognosisData }} />;
       const blob = await pdf(doc).toBlob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-
-      // Clear form after successful generation
-      setDemographics(initialDemographics);
-      setCancerDetails(initialCancerDetails);
-      setTreatmentPlan(initialTreatmentPlan);
-      setLikelihoodExpectations(initialLikelihoodExpectations);
-      setSurvivalWithoutTreatment(initialSurvivalWithoutTreatment);
-      setPrognosisData(initialPrognosisData);
-      onComplete();
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        window.open(dataUrl, '_blank');
+        setIsGenerating(false);
+        // Clear form after successful generation
+        setDemographics(initialDemographics);
+        setCancerDetails(initialCancerDetails);
+        setTreatmentPlan(initialTreatmentPlan);
+        setLikelihoodExpectations(initialLikelihoodExpectations);
+        setSurvivalWithoutTreatment(initialSurvivalWithoutTreatment);
+        setPrognosisData(initialPrognosisData);
+        onComplete();
+      };
+      reader.onerror = () => {
+        setIsGenerating(false);
+        setError('Failed to generate PDF. Please try again.');
+      };
+      reader.readAsDataURL(blob);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGenerating(false);
     }
   };
 
