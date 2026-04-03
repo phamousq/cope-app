@@ -30,7 +30,6 @@ export const LIKELIHOOD_OF_CURE: LikelihoodOfCure[] = [
 ];
 
 export const SURVIVAL_SOURCES = [
-  'Provider Estimate',
   'SEER Data',
   'CancerSurvivalRates',
   'AI Analysis',

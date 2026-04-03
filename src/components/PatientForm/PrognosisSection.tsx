@@ -36,15 +36,6 @@ export function PrognosisSection({ data, demographics, cancerDetails, clipboardT
     initializeSourcesIfNeeded();
   }
 
-  const handleProviderChange = (field: keyof Omit<SurvivalSource, 'source' | 'likelihoodOfCure'>, value: number) => {
-    const providerIndex = data.survivalSources.findIndex(s => s.source === 'Provider Estimate');
-    if (providerIndex < 0) return;
-
-    const newSources = [...data.survivalSources];
-    newSources[providerIndex] = { ...newSources[providerIndex], [field]: value };
-    onChange({ survivalSources: newSources, additionalContext: data.additionalContext });
-  };
-
   const handleFetchSource = async (source: string) => {
     await navigator.clipboard.writeText(clipboardText);
     setCopiedSource(source);
@@ -79,61 +70,6 @@ export function PrognosisSection({ data, demographics, cancerDetails, clipboardT
           <h4 className="text-sm font-medium text-slate-700 mb-4">Estimates of Survival</h4>
 
           <div className="space-y-4">
-            {/* Provider Estimate - Editable */}
-            <div className="border border-slate-200 rounded-lg p-4 bg-white">
-              <div className="flex items-center justify-between mb-3">
-                <span className="font-medium text-slate-800">Provider Estimate</span>
-                <span className="text-xs text-slate-500">(Editable)</span>
-              </div>
-
-              <div className="grid grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">6 Months</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="w-full px-3 py-2 border border-slate-300 rounded text-center"
-                    value={getSourceData('Provider Estimate')?.sixMonth || 0}
-                    onChange={(e) => handleProviderChange('sixMonth', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">1 Year</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="w-full px-3 py-2 border border-slate-300 rounded text-center"
-                    value={getSourceData('Provider Estimate')?.oneYear || 0}
-                    onChange={(e) => handleProviderChange('oneYear', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">2 Years</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="w-full px-3 py-2 border border-slate-300 rounded text-center"
-                    value={getSourceData('Provider Estimate')?.twoYear || 0}
-                    onChange={(e) => handleProviderChange('twoYear', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1">5 Years</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    className="w-full px-3 py-2 border border-slate-300 rounded text-center"
-                    value={getSourceData('Provider Estimate')?.fiveYear || 0}
-                    onChange={(e) => handleProviderChange('fiveYear', parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* SEER Data - Button to fetch */}
             <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
               <div className="flex items-center justify-between mb-3">
