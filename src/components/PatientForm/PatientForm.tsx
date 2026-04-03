@@ -74,19 +74,27 @@ export function PatientForm({ onComplete }: PatientFormProps) {
       const blob = await pdf(doc).toBlob();
       const url = URL.createObjectURL(blob);
 
-      // Open PDF in a new window/tab using the blob URL
-      const newTab = window.open('', '_blank');
-      if (newTab) {
-        newTab.document.write(`
-          <html>
-            <head><title>COPE Report</title></head>
-            <body style="margin:0">
-              <embed src="${url}" type="application/pdf" width="100%" height="100%" />
-            </body>
-          </html>
-        `);
-        newTab.document.close();
-      }
+      // Use an iframe to display PDF inline (avoids download + blank tab issues)
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.top = '0';
+      iframe.style.left = '0';
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = 'none';
+      iframe.style.zIndex = '9999';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+
+      // Remove iframe after it's been used (user navigates away or closes)
+      iframe.onload = () => {
+        setTimeout(() => {
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          URL.revokeObjectURL(url);
+        }, 500);
+      };
 
       setIsGenerating(false);
       // Clear form after successful generation
