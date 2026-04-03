@@ -165,6 +165,7 @@ export function PatientForm({ onComplete }: PatientFormProps) {
 
   const handleCopyToClipboard = async () => {
     const text = generatePlainText();
+    console.log(text);
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
