@@ -72,15 +72,8 @@ export function PatientForm({ onComplete }: PatientFormProps) {
     try {
       const doc = <COPEDocument {...{ demographics, cancerDetails, treatmentPlan, likelihoodExpectations, survivalWithoutTreatment, prognosisData }} />;
       const blob = await pdf(doc).toBlob();
-
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `COPE-Report-${cancerDetails.typeOfCancer || 'Patient'}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      window.open(url, '_blank');
 
       // Clear form after successful generation
       setDemographics(initialDemographics);
