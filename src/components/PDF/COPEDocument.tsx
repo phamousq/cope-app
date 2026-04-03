@@ -69,9 +69,6 @@ export function COPEDocument({ demographics, cancerDetails, treatmentPlan, progn
           </View>
         </View>
 
-        {/* Prognosis Discussion - appears first */}
-        <PrognosisDiscussion />
-
         {/* Diagnosis Section */}
         <DiagnosisSectionPDF data={cancerDetails} />
 
@@ -80,6 +77,9 @@ export function COPEDocument({ demographics, cancerDetails, treatmentPlan, progn
 
         {/* Prognosis Section */}
         <PrognosisSectionPDF data={prognosisData} />
+
+        {/* Prognosis Discussion - appears after form data */}
+        <PrognosisDiscussion />
       </Page>
     </Document>
   );

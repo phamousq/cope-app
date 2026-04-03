@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
 import { AGE_GROUPS } from '@/constants/clinicalBins';
 import type { Demographics } from '@/types';
 
@@ -27,6 +28,13 @@ export function DemographicsSection({ data, onChange }: DemographicsSectionProps
           options={AGE_GROUPS}
           value={data.ageGroup}
           onChange={(e) => handleChange('ageGroup', e.target.value as typeof data.ageGroup)}
+        />
+        <Input
+          label="Ethnicity"
+          value={data.ethnicity}
+          onChange={(e) => handleChange('ethnicity', e.target.value)}
+          placeholder="e.g., Hispanic or Latino, Non-Hispanic White, etc."
+          className="md:col-span-2"
         />
       </div>
     </Card>

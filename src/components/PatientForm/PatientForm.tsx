@@ -4,7 +4,7 @@ import { DiagnosisSection } from './DiagnosisSection';
 import { TreatmentPlanSection } from './TreatmentPlanSection';
 import { PrognosisSection } from './PrognosisSection';
 import { Button } from '@/components/ui/Button';
-import { FileDown, Loader2, AlertCircle } from 'lucide-react';
+import { FileDown, Loader2, AlertCircle, Clipboard, Check } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
 import type { Demographics, CancerDetails, TreatmentPlan, PrognosisData } from '@/types';
 import { COPEDocument } from '@/components/PDF/COPEDocument';
@@ -12,6 +12,7 @@ import { COPEDocument } from '@/components/PDF/COPEDocument';
 const initialDemographics: Demographics = {
   sex: 'Male',
   ageGroup: '50-59',
+  ethnicity: '',
 };
 
 const initialCancerDetails: CancerDetails = {
@@ -40,6 +41,7 @@ export function PatientForm({ onComplete }: PatientFormProps) {
   const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>(initialTreatmentPlan);
   const [prognosisData, setPrognosisData] = useState<PrognosisData>(initialPrognosisData);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const hasSurvivalData = prognosisData.survivalSources.length > 0;
@@ -77,6 +79,42 @@ export function PatientForm({ onComplete }: PatientFormProps) {
 
   const isFormValid = hasSurvivalData;
 
+  const generatePlainText = () => {
+    const lines: string[] = [];
+
+    lines.push('Demographics');
+    lines.push(`Sex: ${demographics.sex}`);
+    lines.push(`Age: ${demographics.ageGroup}`);
+    lines.push(`Ethnicity: ${demographics.ethnicity || 'Not specified'}`);
+    lines.push('');
+
+    // Diagnosis
+    lines.push('Diagnosis');
+    lines.push(`Type of Cancer (where it started): ${cancerDetails.typeOfCancer || 'Not specified'}`);
+    lines.push(`Cancer Stage: ${cancerDetails.cancerStage}`);
+    lines.push(`Scientific Name for Cancer Cell Type: ${cancerDetails.scientificName || 'Not specified'}`);
+    lines.push(`Where It Has Spread: ${cancerDetails.whereSpread || 'Not specified'}`);
+    lines.push('');
+
+    // Treatment
+    lines.push('Treatment');
+    lines.push('Goals of Treatment:');
+    lines.push(treatmentPlan.goals.length > 0 ? treatmentPlan.goals.join(', ') : 'No goals specified');
+    lines.push('');
+    lines.push('Planned Cancer Treatments:');
+    lines.push(treatmentPlan.treatments.length > 0 ? treatmentPlan.treatments.join(', ') : 'No treatments specified');
+    lines.push('');
+
+    return lines.join('\n');
+  };
+
+  const handleCopyToClipboard = async () => {
+    const text = generatePlainText();
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-6">
       <DemographicsSection data={demographics} onChange={setDemographics} />
@@ -86,6 +124,7 @@ export function PatientForm({ onComplete }: PatientFormProps) {
         data={prognosisData}
         demographics={demographics}
         cancerDetails={cancerDetails}
+        clipboardText={generatePlainText()}
         onChange={setPrognosisData}
       />
 
@@ -97,6 +136,23 @@ export function PatientForm({ onComplete }: PatientFormProps) {
       )}
 
       <div className="flex justify-end gap-4">
+        <Button
+          variant="secondary"
+          onClick={handleCopyToClipboard}
+          className="min-w-[200px]"
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4 mr-2" />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Clipboard className="w-4 h-4 mr-2" />
+              Copy to Clipboard
+            </>
+          )}
+        </Button>
         <Button
           variant="primary"
           onClick={handleGeneratePDF}

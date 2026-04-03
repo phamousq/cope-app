@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check } from 'lucide-react';
 import { SURVIVAL_SOURCES } from '@/constants/clinicalBins';
 import type { PrognosisData, SurvivalSource, LikelihoodOfCure } from '@/types';
-import { fetchSurvivalData } from '@/services/api';
 
 interface PrognosisSectionProps {
   data: PrognosisData;
   demographics: { sex: 'Male' | 'Female'; ageGroup: string };
   cancerDetails: { cancerStage: string; scientificName: string };
+  clipboardText: string;
   onChange: (data: PrognosisData) => void;
 }
 
-export function PrognosisSection({ data, demographics, cancerDetails, onChange }: PrognosisSectionProps) {
+export function PrognosisSection({ data, demographics, cancerDetails, clipboardText, onChange }: PrognosisSectionProps) {
   const [loadingSource, setLoadingSource] = useState<string | null>(null);
+  const [copiedSource, setCopiedSource] = useState<string | null>(null);
 
   const initializeSourcesIfNeeded = () => {
     if (data.survivalSources.length === 0) {
@@ -51,37 +52,9 @@ export function PrognosisSection({ data, demographics, cancerDetails, onChange }
   };
 
   const handleFetchSource = async (source: string) => {
-    if (!demographics.sex || !demographics.ageGroup || !cancerDetails.cancerStage) return;
-
-    setLoadingSource(source);
-    try {
-      const response = await fetchSurvivalData({
-        sex: demographics.sex,
-        ageGroup: demographics.ageGroup,
-        stage: cancerDetails.cancerStage,
-        histology: cancerDetails.scientificName,
-      });
-
-      const newSources = [...data.survivalSources];
-      const sourceIndex = newSources.findIndex(s => s.source === source);
-
-      if (sourceIndex >= 0) {
-        newSources[sourceIndex] = {
-          ...newSources[sourceIndex],
-          likelihoodOfCure: response.likelihoodOfCure,
-          sixMonth: response.survivalData.timeframes.sixMonth,
-          oneYear: response.survivalData.timeframes.oneYear,
-          twoYear: response.survivalData.timeframes.twoYear,
-          fiveYear: response.survivalData.timeframes.fiveYear,
-        };
-      }
-
-      onChange({ survivalSources: newSources });
-    } catch (error) {
-      console.error(`Failed to fetch ${source}:`, error);
-    } finally {
-      setLoadingSource(null);
-    }
+    await navigator.clipboard.writeText(clipboardText);
+    setCopiedSource(source);
+    setTimeout(() => setCopiedSource(null), 2000);
   };
 
   const getSourceData = (sourceName: string): SurvivalSource | undefined => {
@@ -194,7 +167,12 @@ export function PrognosisSection({ data, demographics, cancerDetails, onChange }
                   onClick={() => handleFetchSource('SEER Data')}
                   disabled={loadingSource === 'SEER Data'}
                 >
-                  {loadingSource === 'SEER Data' ? (
+                  {copiedSource === 'SEER Data' ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Copied!
+                    </>
+                  ) : loadingSource === 'SEER Data' ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                       Fetching...
@@ -227,7 +205,12 @@ export function PrognosisSection({ data, demographics, cancerDetails, onChange }
                   onClick={() => handleFetchSource('CancerSurvivalRates')}
                   disabled={loadingSource === 'CancerSurvivalRates'}
                 >
-                  {loadingSource === 'CancerSurvivalRates' ? (
+                  {copiedSource === 'CancerSurvivalRates' ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Copied!
+                    </>
+                  ) : loadingSource === 'CancerSurvivalRates' ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                       Fetching...
@@ -260,7 +243,12 @@ export function PrognosisSection({ data, demographics, cancerDetails, onChange }
                   onClick={() => handleFetchSource('AI Analysis')}
                   disabled={loadingSource === 'AI Analysis'}
                 >
-                  {loadingSource === 'AI Analysis' ? (
+                  {copiedSource === 'AI Analysis' ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1" />
+                      Copied!
+                    </>
+                  ) : loadingSource === 'AI Analysis' ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                       Fetching...
