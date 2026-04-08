@@ -19,11 +19,22 @@ COPE helps patients and providers have honest, clear conversations about cancer 
 ## Getting Started
 
 ```bash
-npm install
-npm run dev
+# Install dependencies (requires pnpm)
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Production build
+pnpm build
+
+# Preview production build
+pnpm preview
 ```
 
 Visit [http://localhost:5173](http://localhost:5173)
+
+**Note:** This project uses [pnpm](https://pnpm.io/) for package management. Do not use npm or yarn — the lockfile (`pnpm-lock.yaml`) must be kept in sync with `package.json`. After adding dependencies, always run `pnpm install` to update the lockfile before committing.
 
 ---
 
@@ -62,10 +73,26 @@ Copies a plain text summary of the form (demographics, diagnosis, treatment) to 
 | Layer | Technology |
 |---|---|
 | Framework | React 19 + Vite 8 |
+| Routing | React Router v7 |
 | PDF | @react-pdf/renderer |
 | Styling | Tailwind CSS v4 |
 | Icons | Lucide React |
 | Language | TypeScript (strict) |
+| Package Manager | pnpm |
+
+## Development Workflow
+
+All features are developed on **feature branches** and reviewed before merging to `main`.
+
+**Standard workflow:**
+1. Create a feature branch: `git checkout -b feature/my-feature`
+2. Make changes and commit
+3. Push and open a PR for review
+4. Merge to `main` after approval
+
+**CI/CD:**
+- `main` branch auto-deploys to [Cloudflare Pages](https://cope-app.pages.dev)
+- PR preview deployments available via Cloudflare Pages
 
 ---
 
@@ -74,6 +101,8 @@ Copies a plain text summary of the form (demographics, diagnosis, treatment) to 
 ```
 src/
 ├── components/
+│   ├── NavBar/                      # Navigation bar component
+│   │   └── NavBar.tsx
 │   ├── PatientForm/
 │   │   ├── PatientForm.tsx         # Main form container
 │   │   ├── DemographicsSection.tsx
@@ -92,13 +121,21 @@ src/
 │       ├── Checkbox.tsx
 │       ├── Input.tsx
 │       └── Select.tsx
+├── hooks/
+│   └── useSessionState.ts          # Auto-clearing session state hook
+├── pages/                           # Route pages
+│   ├── PatientView.tsx             # Main patient form (original)
+│   ├── ProviderView.tsx           # Provider perspective view
+│   ├── VoiceInput.tsx              # Voice input interface
+│   ├── FormData.tsx                # Form data view
+│   └── index.ts                   # Page exports
 ├── constants/
 │   └── clinicalBins.ts              # Age groups, cancer stages, treatment options
 ├── services/
 │   └── api.ts                       # SEER API contract + mock data
 ├── types/
 │   └── index.ts                     # TypeScript interfaces
-├── App.tsx
+├── App.tsx                           # Main app with routing
 ├── main.tsx
 └── index.css
 ```
