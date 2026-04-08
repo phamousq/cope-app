@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar/NavBar';
-import { PatientView, ProviderView, VoiceInput } from '@/pages';
+import { PatientView, ProviderView, VoiceInput, FormData } from '@/pages';
 
 function App() {
   return (
@@ -11,6 +11,7 @@ function App() {
           <Route path="/" element={<PatientView />} />
           <Route path="/provider" element={<ProviderView />} />
           <Route path="/voice" element={<VoiceInput />} />
+          <Route path="/form-data" element={<FormData />} />
         </Routes>
       </div>
     </BrowserRouter>

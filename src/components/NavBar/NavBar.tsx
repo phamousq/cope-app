@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, User, Mic } from 'lucide-react';
+import { FileText, User, Mic, Database } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: 'Patient View', icon: FileText },
-  { path: '/provider', label: 'Provider View', icon: User },
   { path: '/voice', label: 'Voice Input', icon: Mic },
+  { path: '/provider', label: 'Provider View', icon: User },
+  { path: '/', label: 'Patient View', icon: FileText },
+  { path: '/form-data', label: 'Form Data', icon: Database },
 ];
 
 export function NavBar() {
