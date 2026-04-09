@@ -1,39 +1,80 @@
 import { useState } from 'react';
-import { Mic, Square, Copy, Trash2 } from 'lucide-react';
+import { Mic, Square, Copy, Trash2, WifiOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
+import { useWhisperSTT } from '@/hooks/useWhisperSTT';
+
+type STTProvider = 'webspeech' | 'whisper';
 
 export function VoiceInput() {
-  const {
-    recordingState,
-    transcript: hookTranscript,
-    interimTranscript,
-    startRecording,
-    stopRecording,
-    resetTranscript,
-    isSupported,
-    error,
-  } = useSpeechRecognition();
-
+  const [sttProvider, setSttProvider] = useState<STTProvider>('webspeech');
   const [transcript, setTranscript] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Use hook transcript when available (after recording), otherwise local state
-  const displayTranscript = hookTranscript || transcript;
+  // Web Speech API hook
+  const webSpeech = useSpeechRecognition();
+
+  // Whisper STT hook
+  const whisper = useWhisperSTT();
+
+  // Determine which provider is active
+  const displayTranscript = sttProvider === 'webspeech' 
+    ? (webSpeech.transcript || transcript)
+    : (whisper.transcript || transcript);
+  
+  const isRecording = sttProvider === 'webspeech' 
+    ? webSpeech.recordingState === 'recording'
+    : whisper.status === 'recording';
+  
+  const isProcessing = sttProvider === 'webspeech'
+    ? webSpeech.recordingState === 'processing'
+    : whisper.status === 'processing' || whisper.status === 'loading';
+  
+  const isDisabled = isProcessing || (sttProvider === 'whisper' && whisper.status === 'loading');
+  
+  const activeError = sttProvider === 'webspeech' ? webSpeech.error : whisper.error;
+
+  // Check if Web Speech failed with network error and offer Whisper fallback
+  const showWhisperFallback = webSpeech.error?.toLowerCase().includes('network') ||
+    webSpeech.error?.toLowerCase().includes('service not allowed') ||
+    !webSpeech.isSupported;
+
+  const handleStartRecording = async () => {
+    if (sttProvider === 'webspeech') {
+      await webSpeech.startRecording();
+    } else {
+      await whisper.startRecording();
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (sttProvider === 'webspeech') {
+      webSpeech.stopRecording();
+    } else {
+      whisper.stopRecording();
+    }
+  };
 
   const handleCopy = async () => {
-    const textToCopy = hookTranscript || transcript;
+    const textToCopy = sttProvider === 'webspeech'
+      ? (webSpeech.transcript || transcript)
+      : (whisper.transcript || transcript);
     await navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleClear = () => {
-    resetTranscript();
+    if (sttProvider === 'webspeech') {
+      webSpeech.resetTranscript();
+    } else {
+      whisper.resetTranscript();
+    }
     setTranscript('');
   };
 
-  if (!isSupported) {
+  // Both not supported
+  if (!webSpeech.isSupported && !whisper.isSupported) {
     return (
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -51,12 +92,8 @@ export function VoiceInput() {
     );
   }
 
-  const isRecording = recordingState === 'recording';
-  const isProcessing = recordingState === 'processing';
-  const isDisabled = isProcessing;
-
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main className="max-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900">Voice Input</h2>
         <p className="text-slate-600 mt-1">
@@ -64,17 +101,62 @@ export function VoiceInput() {
         </p>
       </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-          <p className="text-red-700">{error}</p>
+      {/* Provider selector */}
+      <div className="flex gap-2 mb-6">
+        <button
+          onClick={() => setSttProvider('webspeech')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            sttProvider === 'webspeech'
+              ? 'bg-purple-500 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          Browser Speech (Fast)
+        </button>
+        <button
+          onClick={() => setSttProvider('whisper')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            sttProvider === 'whisper'
+              ? 'bg-purple-500 text-white'
+              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          }`}
+        >
+          <WifiOff className="w-4 h-4" />
+          Whisper AI (Works Offline)
+        </button>
+      </div>
+
+      {/* Whisper model loading indicator */}
+      {sttProvider === 'whisper' && whisper.status === 'loading' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+          <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+          <p className="text-blue-700">
+            Loading Whisper AI model (~75MB, downloaded once and cached)...
+          </p>
         </div>
       )}
 
+      {/* Error display */}
+      {activeError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+          <p className="text-red-700">{activeError}</p>
+          {sttProvider === 'webspeech' && showWhisperFallback && (
+            <button
+              onClick={() => setSttProvider('whisper')}
+              className="mt-2 text-sm text-purple-600 hover:text-purple-800 underline"
+            >
+              Switch to Whisper AI (works offline/in China)
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Recording UI */}
       <div className="bg-white rounded-xl border border-slate-200 p-8 mb-6">
         <div className="flex flex-col items-center">
           <button
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isDisabled}
+            onClick={isRecording ? handleStopRecording : handleStartRecording}
+            disabled={isDisabled || (sttProvider === 'whisper' && whisper.status === 'loading')}
             className={`
               w-20 h-20 rounded-full flex items-center justify-center transition-all
               ${isRecording 
@@ -91,7 +173,13 @@ export function VoiceInput() {
             )}
           </button>
           <p className="mt-4 text-slate-600 font-medium">
-            {isRecording ? 'Recording...' : isProcessing ? 'Processing...' : 'Click to start recording'}
+            {isRecording 
+              ? 'Recording...' 
+              : isProcessing 
+                ? 'Processing...' 
+                : sttProvider === 'whisper' && whisper.status === 'loading'
+                  ? 'Loading model...'
+                  : 'Click to start recording'}
           </p>
           {isRecording && (
             <div className="flex items-center gap-2 mt-2">
@@ -99,17 +187,27 @@ export function VoiceInput() {
               <span className="text-sm text-slate-500">Speak now</span>
             </div>
           )}
+          {sttProvider === 'whisper' && whisper.status === 'ready' && !isRecording && (
+            <p className="mt-2 text-xs text-slate-400">
+              Whisper model ready
+            </p>
+          )}
         </div>
       </div>
 
+      {/* Transcript display */}
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         <label className="block text-sm font-medium text-slate-700 mb-2">
           Transcript
         </label>
         <textarea
-          value={displayTranscript + (interimTranscript ? ` ${interimTranscript}` : '')}
+          value={displayTranscript + (sttProvider === 'webspeech' && webSpeech.interimTranscript ? ` ${webSpeech.interimTranscript}` : '')}
           onChange={(e) => setTranscript(e.target.value)}
-          placeholder="Your transcript will appear here..."
+          placeholder={
+            sttProvider === 'whisper' 
+              ? "Your transcript will appear here after recording..." 
+              : "Your transcript will appear here..."
+          }
           className="w-full min-h-[200px] p-4 border border-slate-200 rounded-lg resize-y focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
           readOnly={isRecording}
         />
