@@ -96,6 +96,7 @@ export function useWhisperSTT(): UseWhisperSTTReturn {
       isModelLoadedRef.current = true;
       setStatus('ready');
       console.log('Whisper model loaded successfully');
+      console.log('Pipeline type after load:', typeof transcriptionPipelineRef.current);
     } catch (err: any) {
       console.error('Failed to load Whisper model:', err);
       setError(`Failed to load model: ${err.message || 'Unknown error'}`);
@@ -156,19 +157,32 @@ export function useWhisperSTT(): UseWhisperSTTReturn {
           const audioData = await audioToWhisperFormat(audioBlob);
           console.log('Audio data length:', audioData.length, 'samples');
           
+          console.log('Pipeline type:', typeof transcriptionPipelineRef.current);
+          console.log('Pipeline is function:', typeof transcriptionPipelineRef.current === 'function');
+          
           if (audioData.length === 0) {
             throw new Error('No audio data captured');
           }
           
           // Run transcription
+          console.log('Calling pipeline with audio data...');
           const result = await transcriptionPipelineRef.current(audioData, {
             max_new_tokens: 512,
             return_timestamps: false,
           });
           
           console.log('Transcription result:', result);
+          console.log('Result type:', typeof result);
+          console.log('Result keys:', result ? Object.keys(result) : 'none');
           
-          const transcription = result.text?.trim() || '';
+          // Handle different result formats
+          let transcription = '';
+          if (typeof result === 'string') {
+            transcription = result.trim();
+          } else if (result && typeof result === 'object') {
+            transcription = (result.text || result.text || '').trim();
+          }
+          
           if (transcription) {
             setTranscript((prev) => (prev + ' ' + transcription).trim());
           }
