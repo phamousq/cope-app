@@ -5,8 +5,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 const navItems = [
   { path: '/voice', label: 'Voice Input', icon: Mic },
-  { path: '/patient-form', label: 'Patient Form', icon: ClipboardList },
   { path: '/provider', label: 'Provider View', icon: User },
+  { path: '/patient-form', label: 'Patient Form', icon: ClipboardList },
   { path: '/patient', label: 'Patient View', icon: User },
   { path: '/backend', label: 'Backend', icon: Database },
 ];
