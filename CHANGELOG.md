@@ -12,6 +12,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Landing page with cursor-following gradient buttons
 - Responsive mobile navigation with hamburger menu
 - Theme persistence across sessions (localStorage)
+- **Provider View** - comprehensive clinical data entry interface with:
+  - TNM Staging (T, N, M components)
+  - Molecular & Genomic Markers (free-text entry)
+  - Biochemical/Tumor Markers (NLR, CEA, CA-125, PSA, LDH)
+  - Treatment Response (free-text notes)
+  - Patient-Specific Factors (ECOG, CCI, mGPS)
+  - SEER Registry Data (demographics, tumor characteristics, geographic markers)
+- Patient Form page wrapper for existing PatientForm component
 
 ### Fixed
 - Dark mode styling for all UI components (Card, Input, Select, Checkbox)

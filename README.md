@@ -25,6 +25,15 @@ Dictate clinical notes using your microphone. Transcriptions are processed via:
 - **Browser Web Speech API** — native, no setup required
 - **AssemblyAI** — alternative REST API transcription (configure via `VITE_ASSEMBLYAI_API_KEY`)
 
+### Provider View
+A comprehensive clinical data entry interface for healthcare providers. Includes:
+- **TNM Staging** — standardized T, N, M classification
+- **Molecular & Genomic Markers** — free-text entry for biomarker and mutation results
+- **Biochemical/Tumor Markers** — NLR, CEA, CA-125, PSA, LDH
+- **Treatment Response** — free-text notes on treatment efficacy
+- **Patient-Specific Factors** — ECOG, Charlson Comorbidity Index, mGPS
+- **SEER Registry Data** — population-level data for survival statistics
+
 ### Dark Mode
 Toggle between light, dark, and system theme. Theme preference persists across sessions.
 
@@ -60,21 +69,24 @@ Visit [http://localhost:5173](http://localhost:5173)
 
 ## Form Sections
 
-### Demographics
+### Demographics (Patient Form)
 Patient information — sex, age group, and ethnicity.
 
-### Diagnosis
+### Diagnosis (Patient Form)
 Cancer details — type of cancer (primary site), cancer stage (localized/regional/metastatic), scientific/histological name, and where it has spread.
 
-### Treatment Plan
+### Treatment Plan (Patient Form)
 Treatment goals (cure, remission, quality of life, longer life, comfort) and planned treatments (radiation, surgery, chemotherapy, immunotherapy, targeted therapy, hormone therapy).
 
-### Prognosis
+### Prognosis (Patient Form)
 Survival estimates from three sources:
 - **Provider Estimate** — manually editable by the physician
 - **SEER Data** — fetched from SEER registry (button copies form data for API request)
 - **CancerSurvivalRates** — external source (button copies form data for API request)
 - **AI Analysis** — placeholder for future AI integration (button copies form data for API request)
+
+### Provider View
+Comprehensive clinical data entry for healthcare providers. Accepts structured data including TNM staging, molecular/genomic markers, biochemical tumor markers, treatment response notes, patient-specific factors (ECOG, CCI, mGPS), and SEER registry population data. Data is shared with Patient Form via global state.
 
 ---
 
