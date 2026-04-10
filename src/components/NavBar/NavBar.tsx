@@ -4,8 +4,8 @@ import { Home, Mic, User, Database, Menu, X } from 'lucide-react';
 
 const navItems = [
   { path: '/voice', label: 'Voice Input', icon: Mic },
-  { path: '/patient', label: 'Patient View', icon: User },
   { path: '/provider', label: 'Provider View', icon: User },
+  { path: '/patient', label: 'Patient View', icon: User },
   { path: '/backend', label: 'Backend', icon: Database },
 ];
 
