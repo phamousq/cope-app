@@ -34,6 +34,30 @@ const ECOG_OPTIONS = ['', '0 - Fully active', '1 - Restricted strenuous activity
 const CCI_OPTIONS = ['', '0', '1', '2', '3', '4', '5+'];
 const MGPS_OPTIONS = ['', '0 (Low risk)', '1 (Intermediate)', '2 (High risk)'];
 
+// SEER Registry options
+const SEER_STAGE_OPTIONS = ['', 'Localized', 'Regional', 'Distant'];
+const HISTOLOGIC_GRADE_OPTIONS = ['', 'Grade I (Well differentiated)', 'Grade II (Moderately differentiated)', 'Grade III (Poorly differentiated)', 'Grade IV (Undifferentiated)', 'Not applicable'];
+const RACE_ETHNICITY_OPTIONS = ['', 'Non-Hispanic White', 'Non-Hispanic Black', 'Hispanic', 'Asian/Pacific Islander', 'American Indian/Alaska Native', 'Unknown'];
+const MARITAL_STATUS_OPTIONS = ['', 'Single (never married)', 'Married', 'Separated', 'Divorced', 'Widowed', 'Unmarried or domestic partner', 'Unknown'];
+const SMOKING_HISTORY_OPTIONS = ['', 'Never smoker', 'Former smoker', 'Current smoker', 'Unknown'];
+const URBANICITY_OPTIONS = ['', '1 - Metro counties (pop ≥1 million)', '2 - Metro counties (pop <1 million)', '3 - Urban counties', '4 - Less urban counties', '5 - Completely rural counties', 'Unknown'];
+
+interface SeerRegistryData {
+  primaryCancerSite: string;
+  seerSummaryStage: string;
+  histologicType: string;
+  histologicGrade: string;
+  ageAtDiagnosis: string;
+  raceEthnicity: string;
+  maritalStatus: string;
+  countyOfResidence: string;
+  urbanicity: string;
+  tumorSize: string;
+  lymphNodesInvolved: string;
+  smokingHistory: string;
+  yearOfDiagnosis: string;
+}
+
 interface ClinicalMolecularData {
   tStage: string;
   nStage: string;
@@ -67,6 +91,7 @@ interface ProviderFormData {
   prognosisData: PrognosisData;
   clinicalMolecular: ClinicalMolecularData;
   patientFactors: PatientSpecificFactors;
+  seerRegistry: SeerRegistryData;
 }
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other'] as const;
@@ -143,6 +168,21 @@ const initialFormData: ProviderFormData = {
     charlsonComorbidityIndex: '',
     mgps: '',
     physiologicAge: '',
+  },
+  seerRegistry: {
+    primaryCancerSite: '',
+    seerSummaryStage: '',
+    histologicType: '',
+    histologicGrade: '',
+    ageAtDiagnosis: '',
+    raceEthnicity: '',
+    maritalStatus: '',
+    countyOfResidence: '',
+    urbanicity: '',
+    tumorSize: '',
+    lymphNodesInvolved: '',
+    smokingHistory: '',
+    yearOfDiagnosis: '',
   },
 };
 
@@ -382,6 +422,13 @@ export function ProviderView() {
     setFormData((prev) => ({
       ...prev,
       patientFactors: { ...prev.patientFactors, [key]: value },
+    }));
+  }, []);
+
+  const updateSeerRegistry = useCallback(<K extends keyof SeerRegistryData>(key: K, value: SeerRegistryData[K]) => {
+    setFormData((prev) => ({
+      ...prev,
+      seerRegistry: { ...prev.seerRegistry, [key]: value },
     }));
   }, []);
 
@@ -665,6 +712,101 @@ export function ProviderView() {
               onChange={(v) => updatePatientFactors('physiologicAge', v)}
               placeholder="e.g., 65 or 'Health status-adjusted'"
             />
+          </div>
+        </SectionCard>
+
+        {/* SEER Registry Data Section */}
+        <SectionCard title="SEER Registry Data (Optional)">
+          <div className="space-y-4">
+            {/* Cancer Classification */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <TextInput
+                label="Primary Cancer Site (ICD-O-3)"
+                value={formData.seerRegistry.primaryCancerSite}
+                onChange={(v) => updateSeerRegistry('primaryCancerSite', v)}
+                placeholder="e.g., C34.9 (Lung)"
+              />
+              <SelectInput
+                label="SEER Summary Stage"
+                value={formData.seerRegistry.seerSummaryStage}
+                onChange={(v) => updateSeerRegistry('seerSummaryStage', v)}
+                options={SEER_STAGE_OPTIONS}
+              />
+              <TextInput
+                label="Histologic Type"
+                value={formData.seerRegistry.histologicType}
+                onChange={(v) => updateSeerRegistry('histologicType', v)}
+                placeholder="e.g., Adenocarcinoma"
+              />
+              <SelectInput
+                label="Histologic Grade"
+                value={formData.seerRegistry.histologicGrade}
+                onChange={(v) => updateSeerRegistry('histologicGrade', v)}
+                options={HISTOLOGIC_GRADE_OPTIONS}
+              />
+              <TextInput
+                label="Tumor Size (mm)"
+                value={formData.seerRegistry.tumorSize}
+                onChange={(v) => updateSeerRegistry('tumorSize', v)}
+                placeholder="e.g., 45"
+              />
+              <TextInput
+                label="Lymph Nodes Involved"
+                value={formData.seerRegistry.lymphNodesInvolved}
+                onChange={(v) => updateSeerRegistry('lymphNodesInvolved', v)}
+                placeholder="e.g., 0, 2, 5+"
+              />
+            </div>
+
+            {/* Demographics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <TextInput
+                label="Age at Diagnosis"
+                value={formData.seerRegistry.ageAtDiagnosis}
+                onChange={(v) => updateSeerRegistry('ageAtDiagnosis', v)}
+                placeholder="e.g., 62"
+              />
+              <SelectInput
+                label="Race/Ethnicity"
+                value={formData.seerRegistry.raceEthnicity}
+                onChange={(v) => updateSeerRegistry('raceEthnicity', v)}
+                options={RACE_ETHNICITY_OPTIONS}
+              />
+              <SelectInput
+                label="Marital Status"
+                value={formData.seerRegistry.maritalStatus}
+                onChange={(v) => updateSeerRegistry('maritalStatus', v)}
+                options={MARITAL_STATUS_OPTIONS}
+              />
+              <TextInput
+                label="Year of Diagnosis"
+                value={formData.seerRegistry.yearOfDiagnosis}
+                onChange={(v) => updateSeerRegistry('yearOfDiagnosis', v)}
+                placeholder="e.g., 2023"
+              />
+            </div>
+
+            {/* Geographic & Social */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <TextInput
+                label="County of Residence"
+                value={formData.seerRegistry.countyOfResidence}
+                onChange={(v) => updateSeerRegistry('countyOfResidence', v)}
+                placeholder="e.g., Travis County, TX"
+              />
+              <SelectInput
+                label="Urbanicity (RUCC)"
+                value={formData.seerRegistry.urbanicity}
+                onChange={(v) => updateSeerRegistry('urbanicity', v)}
+                options={URBANICITY_OPTIONS}
+              />
+              <SelectInput
+                label="Smoking History"
+                value={formData.seerRegistry.smokingHistory}
+                onChange={(v) => updateSeerRegistry('smokingHistory', v)}
+                options={SMOKING_HISTORY_OPTIONS}
+              />
+            </div>
           </div>
         </SectionCard>
       </main>
