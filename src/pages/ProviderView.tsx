@@ -18,18 +18,7 @@ const T_STAGE_OPTIONS = ['', 'TX', 'T0', 'Tis', 'T1', 'T1a', 'T1b', 'T2', 'T3', 
 const N_STAGE_OPTIONS = ['', 'NX', 'N0', 'N1', 'N1a', 'N1b', 'N1c', 'N2', 'N2a', 'N2b', 'N3'];
 const M_STAGE_OPTIONS = ['', 'MX', 'M0', 'M1', 'M1a', 'M1b', 'M1c'];
 
-// Molecular/Genomic markers
-const MSI_OPTIONS = ['', 'MSI-H', 'MSI-L', 'MSS', 'Not tested'];
-const KRAS_OPTIONS = ['', 'Wild-type', 'Mutant (G12C)', 'Mutant (other)', 'Not tested'];
-const BRAF_OPTIONS = ['', 'Wild-type', 'Mutant (V600E)', 'Mutant (other)', 'Not tested'];
-const EGFR_OPTIONS = ['', 'Wild-type', 'Mutant (exon 19)', 'Mutant (L858R)', 'Mutant (other)', 'Not tested'];
-const BRCA_OPTIONS = ['', 'BRCA1 Positive', 'BRCA2 Positive', 'Both Positive', 'Negative', 'Not tested'];
-
-// Treatment response
-const PCR_OPTIONS = ['', 'Yes (complete response)', 'No (residual disease)', 'Not applicable', 'Unknown'];
-const RCB_OPTIONS = ['', 'RCB-0 (Pathologic complete)', 'RCB-I (Minimal residual)', 'RCB-II (Moderate residual)', 'RCB-III (Extensive residual)', 'Not applicable'];
-
-// Patient-specific factors
+// Patient-specific factors (standardized scales - keep as selects)
 const ECOG_OPTIONS = ['', '0 - Fully active', '1 - Restricted strenuous activity', '2 - Ambulatory but unable to work', '3 - Limited self-care', '4 - Completely disabled'];
 const CCI_OPTIONS = ['', '0', '1', '2', '3', '4', '5+'];
 const MGPS_OPTIONS = ['', '0 (Low risk)', '1 (Intermediate)', '2 (High risk)'];
@@ -59,22 +48,21 @@ interface SeerRegistryData {
 }
 
 interface ClinicalMolecularData {
+  // TNM Staging
   tStage: string;
   nStage: string;
   mStage: string;
-  msiStatus: string;
-  krasStatus: string;
-  brafStatus: string;
-  egfrStatus: string;
-  brcaStatus: string;
+  // Molecular & Genomic Markers (free text)
+  molecularGenomicMarkers: string;
+  // Biochemical/Tumor Markers
   nlr: string;
   cea: string;
   ca125: string;
   psa: string;
   psaDoublingTime: string;
   ldh: string;
-  pcr: string;
-  rcb: string;
+  // Treatment Response (free text)
+  treatmentResponse: string;
 }
 
 interface PatientSpecificFactors {
@@ -149,19 +137,14 @@ const initialFormData: ProviderFormData = {
     tStage: '',
     nStage: '',
     mStage: '',
-    msiStatus: '',
-    krasStatus: '',
-    brafStatus: '',
-    egfrStatus: '',
-    brcaStatus: '',
+    molecularGenomicMarkers: '',
     nlr: '',
     cea: '',
     ca125: '',
     psa: '',
     psaDoublingTime: '',
     ldh: '',
-    pcr: '',
-    rcb: '',
+    treatmentResponse: '',
   },
   patientFactors: {
     ecogStatus: '',
@@ -591,36 +574,16 @@ export function ProviderView() {
 
         {/* Molecular & Genomic Markers Section */}
         <SectionCard title="Molecular & Genomic Markers (Optional)">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SelectInput
-              label="MSI Status"
-              value={formData.clinicalMolecular.msiStatus}
-              onChange={(v) => updateClinicalMolecular('msiStatus', v)}
-              options={MSI_OPTIONS}
-            />
-            <SelectInput
-              label="KRAS Status"
-              value={formData.clinicalMolecular.krasStatus}
-              onChange={(v) => updateClinicalMolecular('krasStatus', v)}
-              options={KRAS_OPTIONS}
-            />
-            <SelectInput
-              label="BRAF Status"
-              value={formData.clinicalMolecular.brafStatus}
-              onChange={(v) => updateClinicalMolecular('brafStatus', v)}
-              options={BRAF_OPTIONS}
-            />
-            <SelectInput
-              label="EGFR Status"
-              value={formData.clinicalMolecular.egfrStatus}
-              onChange={(v) => updateClinicalMolecular('egfrStatus', v)}
-              options={EGFR_OPTIONS}
-            />
-            <SelectInput
-              label="BRCA1/2 Status"
-              value={formData.clinicalMolecular.brcaStatus}
-              onChange={(v) => updateClinicalMolecular('brcaStatus', v)}
-              options={BRCA_OPTIONS}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
+              Biomarker & Mutation Results
+            </label>
+            <textarea
+              value={formData.clinicalMolecular.molecularGenomicMarkers}
+              onChange={(e) => updateClinicalMolecular('molecularGenomicMarkers', e.target.value)}
+              placeholder="e.g., MSI-H, KRAS G12C mutant, BRAF wild-type, EGFR exon 19 deletion, BRCA1/2 negative..."
+              rows={3}
+              className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
             />
           </div>
         </SectionCard>
@@ -669,18 +632,16 @@ export function ProviderView() {
 
         {/* Treatment Response Section */}
         <SectionCard title="Treatment Response (Optional)">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SelectInput
-              label="Pathologic Complete Response (pCR)"
-              value={formData.clinicalMolecular.pcr}
-              onChange={(v) => updateClinicalMolecular('pcr', v)}
-              options={PCR_OPTIONS}
-            />
-            <SelectInput
-              label="Residual Cancer Burden (RCB)"
-              value={formData.clinicalMolecular.rcb}
-              onChange={(v) => updateClinicalMolecular('rcb', v)}
-              options={RCB_OPTIONS}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
+              Treatment Response Notes
+            </label>
+            <textarea
+              value={formData.clinicalMolecular.treatmentResponse}
+              onChange={(e) => updateClinicalMolecular('treatmentResponse', e.target.value)}
+              placeholder="e.g., Achieved pCR, RCB-I with minimal residual disease, progressing on chemotherapy..."
+              rows={3}
+              className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
             />
           </div>
         </SectionCard>
