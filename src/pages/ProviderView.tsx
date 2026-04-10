@@ -13,11 +13,60 @@ import type {
   LikelihoodOfCure,
 } from '../types';
 
+// TNM Staging options
+const T_STAGE_OPTIONS = ['', 'TX', 'T0', 'Tis', 'T1', 'T1a', 'T1b', 'T2', 'T3', 'T4', 'T4a', 'T4b'];
+const N_STAGE_OPTIONS = ['', 'NX', 'N0', 'N1', 'N1a', 'N1b', 'N1c', 'N2', 'N2a', 'N2b', 'N3'];
+const M_STAGE_OPTIONS = ['', 'MX', 'M0', 'M1', 'M1a', 'M1b', 'M1c'];
+
+// Molecular/Genomic markers
+const MSI_OPTIONS = ['', 'MSI-H', 'MSI-L', 'MSS', 'Not tested'];
+const KRAS_OPTIONS = ['', 'Wild-type', 'Mutant (G12C)', 'Mutant (other)', 'Not tested'];
+const BRAF_OPTIONS = ['', 'Wild-type', 'Mutant (V600E)', 'Mutant (other)', 'Not tested'];
+const EGFR_OPTIONS = ['', 'Wild-type', 'Mutant (exon 19)', 'Mutant (L858R)', 'Mutant (other)', 'Not tested'];
+const BRCA_OPTIONS = ['', 'BRCA1 Positive', 'BRCA2 Positive', 'Both Positive', 'Negative', 'Not tested'];
+
+// Treatment response
+const PCR_OPTIONS = ['', 'Yes (complete response)', 'No (residual disease)', 'Not applicable', 'Unknown'];
+const RCB_OPTIONS = ['', 'RCB-0 (Pathologic complete)', 'RCB-I (Minimal residual)', 'RCB-II (Moderate residual)', 'RCB-III (Extensive residual)', 'Not applicable'];
+
+// Patient-specific factors
+const ECOG_OPTIONS = ['', '0 - Fully active', '1 - Restricted strenuous activity', '2 - Ambulatory but unable to work', '3 - Limited self-care', '4 - Completely disabled'];
+const CCI_OPTIONS = ['', '0', '1', '2', '3', '4', '5+'];
+const MGPS_OPTIONS = ['', '0 (Low risk)', '1 (Intermediate)', '2 (High risk)'];
+
+interface ClinicalMolecularData {
+  tStage: string;
+  nStage: string;
+  mStage: string;
+  msiStatus: string;
+  krasStatus: string;
+  brafStatus: string;
+  egfrStatus: string;
+  brcaStatus: string;
+  nlr: string;
+  cea: string;
+  ca125: string;
+  psa: string;
+  psaDoublingTime: string;
+  ldh: string;
+  pcr: string;
+  rcb: string;
+}
+
+interface PatientSpecificFactors {
+  ecogStatus: string;
+  charlsonComorbidityIndex: string;
+  mgps: string;
+  physiologicAge: string;
+}
+
 interface ProviderFormData {
   demographics: Demographics;
   cancerDetails: CancerDetails;
   treatmentPlan: TreatmentPlan;
   prognosisData: PrognosisData;
+  clinicalMolecular: ClinicalMolecularData;
+  patientFactors: PatientSpecificFactors;
 }
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other'] as const;
@@ -70,6 +119,30 @@ const initialFormData: ProviderFormData = {
   prognosisData: {
     survivalSources: [],
     additionalContext: '',
+  },
+  clinicalMolecular: {
+    tStage: '',
+    nStage: '',
+    mStage: '',
+    msiStatus: '',
+    krasStatus: '',
+    brafStatus: '',
+    egfrStatus: '',
+    brcaStatus: '',
+    nlr: '',
+    cea: '',
+    ca125: '',
+    psa: '',
+    psaDoublingTime: '',
+    ldh: '',
+    pcr: '',
+    rcb: '',
+  },
+  patientFactors: {
+    ecogStatus: '',
+    charlsonComorbidityIndex: '',
+    mgps: '',
+    physiologicAge: '',
   },
 };
 
@@ -298,6 +371,20 @@ export function ProviderView() {
     }));
   }, []);
 
+  const updateClinicalMolecular = useCallback(<K extends keyof ClinicalMolecularData>(key: K, value: ClinicalMolecularData[K]) => {
+    setFormData((prev) => ({
+      ...prev,
+      clinicalMolecular: { ...prev.clinicalMolecular, [key]: value },
+    }));
+  }, []);
+
+  const updatePatientFactors = useCallback(<K extends keyof PatientSpecificFactors>(key: K, value: PatientSpecificFactors[K]) => {
+    setFormData((prev) => ({
+      ...prev,
+      patientFactors: { ...prev.patientFactors, [key]: value },
+    }));
+  }, []);
+
   const survivalSources = formData.prognosisData.survivalSources.length > 0
     ? formData.prognosisData.survivalSources
     : [{ source: 'Provider Estimate', likelihoodOfCure: 'Possible (25-75%)', sixMonth: 0, oneYear: 0, twoYear: 0, fiveYear: 0 }];
@@ -427,6 +514,156 @@ export function ProviderView() {
               placeholder="Relevant comorbidities, biomarkers, genetic markers, clinical notes..."
               rows={3}
               className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
+            />
+          </div>
+        </SectionCard>
+
+        {/* TNM Staging Section */}
+        <SectionCard title="TNM Staging (Optional)">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <SelectInput
+              label="T - Primary Tumor"
+              value={formData.clinicalMolecular.tStage}
+              onChange={(v) => updateClinicalMolecular('tStage', v)}
+              options={T_STAGE_OPTIONS}
+            />
+            <SelectInput
+              label="N - Regional Nodes"
+              value={formData.clinicalMolecular.nStage}
+              onChange={(v) => updateClinicalMolecular('nStage', v)}
+              options={N_STAGE_OPTIONS}
+            />
+            <SelectInput
+              label="M - Distant Metastasis"
+              value={formData.clinicalMolecular.mStage}
+              onChange={(v) => updateClinicalMolecular('mStage', v)}
+              options={M_STAGE_OPTIONS}
+            />
+          </div>
+        </SectionCard>
+
+        {/* Molecular & Genomic Markers Section */}
+        <SectionCard title="Molecular & Genomic Markers (Optional)">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SelectInput
+              label="MSI Status"
+              value={formData.clinicalMolecular.msiStatus}
+              onChange={(v) => updateClinicalMolecular('msiStatus', v)}
+              options={MSI_OPTIONS}
+            />
+            <SelectInput
+              label="KRAS Status"
+              value={formData.clinicalMolecular.krasStatus}
+              onChange={(v) => updateClinicalMolecular('krasStatus', v)}
+              options={KRAS_OPTIONS}
+            />
+            <SelectInput
+              label="BRAF Status"
+              value={formData.clinicalMolecular.brafStatus}
+              onChange={(v) => updateClinicalMolecular('brafStatus', v)}
+              options={BRAF_OPTIONS}
+            />
+            <SelectInput
+              label="EGFR Status"
+              value={formData.clinicalMolecular.egfrStatus}
+              onChange={(v) => updateClinicalMolecular('egfrStatus', v)}
+              options={EGFR_OPTIONS}
+            />
+            <SelectInput
+              label="BRCA1/2 Status"
+              value={formData.clinicalMolecular.brcaStatus}
+              onChange={(v) => updateClinicalMolecular('brcaStatus', v)}
+              options={BRCA_OPTIONS}
+            />
+          </div>
+        </SectionCard>
+
+        {/* Biochemical & Tumor Markers Section */}
+        <SectionCard title="Biochemical & Tumor Markers (Optional)">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <TextInput
+              label="NLR (Neutrophil:Lymphocyte)"
+              value={formData.clinicalMolecular.nlr}
+              onChange={(v) => updateClinicalMolecular('nlr', v)}
+              placeholder="e.g., 3.5"
+            />
+            <TextInput
+              label="CEA (ng/mL)"
+              value={formData.clinicalMolecular.cea}
+              onChange={(v) => updateClinicalMolecular('cea', v)}
+              placeholder="e.g., 5.2"
+            />
+            <TextInput
+              label="CA-125 (U/mL)"
+              value={formData.clinicalMolecular.ca125}
+              onChange={(v) => updateClinicalMolecular('ca125', v)}
+              placeholder="e.g., 35"
+            />
+            <TextInput
+              label="PSA (ng/mL)"
+              value={formData.clinicalMolecular.psa}
+              onChange={(v) => updateClinicalMolecular('psa', v)}
+              placeholder="e.g., 4.2"
+            />
+            <TextInput
+              label="PSA Doubling Time (months)"
+              value={formData.clinicalMolecular.psaDoublingTime}
+              onChange={(v) => updateClinicalMolecular('psaDoublingTime', v)}
+              placeholder="e.g., 12"
+            />
+            <TextInput
+              label="LDH (U/L)"
+              value={formData.clinicalMolecular.ldh}
+              onChange={(v) => updateClinicalMolecular('ldh', v)}
+              placeholder="e.g., 200"
+            />
+          </div>
+        </SectionCard>
+
+        {/* Treatment Response Section */}
+        <SectionCard title="Treatment Response (Optional)">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <SelectInput
+              label="Pathologic Complete Response (pCR)"
+              value={formData.clinicalMolecular.pcr}
+              onChange={(v) => updateClinicalMolecular('pcr', v)}
+              options={PCR_OPTIONS}
+            />
+            <SelectInput
+              label="Residual Cancer Burden (RCB)"
+              value={formData.clinicalMolecular.rcb}
+              onChange={(v) => updateClinicalMolecular('rcb', v)}
+              options={RCB_OPTIONS}
+            />
+          </div>
+        </SectionCard>
+
+        {/* Patient-Specific Factors Section */}
+        <SectionCard title="Patient-Specific Factors (Optional)">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <SelectInput
+              label="ECOG Performance Status"
+              value={formData.patientFactors.ecogStatus}
+              onChange={(v) => updatePatientFactors('ecogStatus', v)}
+              options={ECOG_OPTIONS}
+            />
+            <SelectInput
+              label="Charlson Comorbidity Index"
+              value={formData.patientFactors.charlsonComorbidityIndex}
+              onChange={(v) => updatePatientFactors('charlsonComorbidityIndex', v)}
+              options={CCI_OPTIONS}
+            />
+            <SelectInput
+              label="mGPS (Glasgow Prognostic Score)"
+              value={formData.patientFactors.mgps}
+              onChange={(v) => updatePatientFactors('mgps', v)}
+              options={MGPS_OPTIONS}
+            />
+            <TextInput
+              label="Physiologic Age"
+              value={formData.patientFactors.physiologicAge}
+              onChange={(v) => updatePatientFactors('physiologicAge', v)}
+              placeholder="e.g., 65 or 'Health status-adjusted'"
             />
           </div>
         </SectionCard>
