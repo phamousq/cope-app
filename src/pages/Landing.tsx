@@ -93,7 +93,7 @@ export function Landing() {
                 <Activity className="w-8 h-8 text-white" />
               </div>
               <span className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent">
-                Cope
+                COPE
               </span>
             </div>
             
@@ -167,7 +167,7 @@ export function Landing() {
       {/* Footer */}
       <footer className="border-t border-slate-200 dark:border-slate-700 py-8">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500 dark:text-slate-400 text-sm">
-          <p>Cope App — Cancer Outcomes &amp; Prognosis Evaluation</p>
+          <p>COPE App — Cancer Outcomes &amp; Prognosis Evaluation</p>
           <p className="mt-1">Built with care for healthcare providers</p>
         </div>
       </footer>

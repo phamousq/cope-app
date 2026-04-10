@@ -37,7 +37,7 @@ export function NavBar() {
               <span className="text-white font-bold text-base sm:text-lg">C</span>
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent truncate">Cope</h1>
+              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent truncate">COPE</h1>
             </div>
           </Link>
 
