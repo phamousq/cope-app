@@ -21,6 +21,7 @@ export function useGoogleCloudSTT() {
   const audioContextRef = useRef<AudioContext | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null)
 
   const isSupported = typeof window !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
@@ -49,13 +50,17 @@ export function useGoogleCloudSTT() {
     }
     
     audioChunksRef.current = []
+    
+    audioWorkletNodeRef.current = null
   }, [])
 
   const startRecording = useCallback(async () => {
     console.log('[GoogleCloudSTT] Starting recording...');
     
     if (!isSupported) {
-      setError('Microphone access not supported in this browser')
+      const err = 'Microphone access not supported in this browser'
+      console.error('[GoogleCloudSTT]', err)
+      setError(err)
       return
     }
 
@@ -66,6 +71,7 @@ export function useGoogleCloudSTT() {
       setStatus('loading')
 
       // Get microphone access
+      console.log('[GoogleCloudSTT] Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
@@ -75,7 +81,7 @@ export function useGoogleCloudSTT() {
         }
       })
       streamRef.current = stream
-      console.log('[GoogleCloudSTT] Got microphone access');
+      console.log('[GoogleCloudSTT] Got microphone access ✓');
 
       // Create AudioContext for processing
       const audioContext = new AudioContext({ sampleRate: 16000 })
@@ -84,17 +90,27 @@ export function useGoogleCloudSTT() {
       // Create WebSocket connection
       const apiKey = import.meta.env.VITE_GOOGLE_CLOUD_SPEECH_API_KEY
       if (!apiKey) {
-        throw new Error('Google Cloud Speech API key not configured')
+        throw new Error('Google Cloud Speech API key not configured. Make sure VITE_GOOGLE_CLOUD_SPEECH_API_KEY is set in your .env file.')
       }
 
       const wsUrl = `wss://speech.googleapis.com/v1/speech:streamingRecognize?key=${apiKey}`
-      console.log('[GoogleCloudSTT] Connecting to WebSocket...');
+      console.log('[GoogleCloudSTT] Connecting to WebSocket:', wsUrl.replace(apiKey, '***'));
       
       const ws = new WebSocket(wsUrl)
       websocketRef.current = ws
 
+      // Set a connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.error('[GoogleCloudSTT] WebSocket connection timeout');
+          ws.close();
+          setError('Connection timeout. Your network may be blocking speech.googleapis.com. Try using a VPN or switch to Browser Speech provider.');
+        }
+      }, 10000);
+
       ws.onopen = () => {
-        console.log('[GoogleCloudSTT] WebSocket connected');
+        clearTimeout(connectionTimeout);
+        console.log('[GoogleCloudSTT] WebSocket connected ✓');
         
         // Send the streaming config first
         const config = {
@@ -155,15 +171,23 @@ export function useGoogleCloudSTT() {
       }
 
       ws.onerror = (event) => {
+        clearTimeout(connectionTimeout);
         console.error('[GoogleCloudSTT] WebSocket error:', event)
-        setError('WebSocket connection error')
+        // Don't set error here - onclose will handle it
       }
 
       ws.onclose = (event) => {
+        clearTimeout(connectionTimeout);
         console.log('[GoogleCloudSTT] WebSocket closed:', event.code, event.reason)
         
-        if (event.code === 1000) {
+        if (event.code === 1006) {
+          // Abnormal closure - typically network issue
+          const networkError = 'Network error: Could not connect to speech.googleapis.com. Your network is likely blocking Google services. Options: 1) Use a VPN, 2) Use Browser Speech provider (if available), 3) Deploy to Cloudflare Pages with HTTPS';
+          console.error('[GoogleCloudSTT]', networkError);
+          setError(networkError);
+        } else if (event.code === 1000) {
           // Normal closure
+          console.log('[GoogleCloudSTT] Normal connection closure');
         } else {
           setError(`Connection closed: ${event.reason || event.code}`)
         }
@@ -172,53 +196,144 @@ export function useGoogleCloudSTT() {
         setStatus('idle')
       }
 
-      // Set up MediaRecorder to capture audio
-      // Note: MediaRecorder doesn't give us raw PCM, so we'll use AudioContext to resample
+      // Set up audio processing using AudioWorkletNode (modern) with ScriptProcessor fallback
       const source = audioContext.createMediaStreamSource(stream)
-      const processor = audioContext.createScriptProcessor(4096, 1, 1)
       
-      processor.onaudioprocess = (audioEvent) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          const inputData = audioEvent.inputBuffer.getChannelData(0)
-          
-          // Convert Float32Array to Int16Array (LINEAR16)
-          const int16Array = new Int16Array(inputData.length)
-          for (let i = 0; i < inputData.length; i++) {
-            const s = Math.max(-1, Math.min(1, inputData[i]))
-            int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
-          }
-          
-          // Create audio content (base64 encoded)
-          // Convert Int16Array to base64 properly
-          const uint8Array = new Uint8Array(int16Array.buffer)
-          let binary = ''
-          for (let i = 0; i < uint8Array.length; i++) {
-            binary += String.fromCharCode(uint8Array[i])
-          }
-          const base64 = btoa(binary)
-          
-          const audioContent = {
-            audio: {
-              content: base64,
+      // Try to use AudioWorkletNode first (modern approach)
+      try {
+        // Create a simple passthrough processor inline
+        const audioWorkletCode = `
+          class PassthroughProcessor extends AudioWorkletProcessor {
+            constructor() {
+              super();
+              this.port.onmessage = (event) => {
+                if (event.data.type === 'stop') {
+                  this.port.close();
+                }
+              };
+            }
+            
+            process(inputs, outputs, parameters) {
+              const input = inputs[0];
+              const output = outputs[0];
+              
+              if (input.length > 0 && output.length > 0) {
+                const inputChannel = input[0];
+                const outputChannel = output[0];
+                
+                if (inputChannel && outputChannel) {
+                  // Apply simple gain and pass through
+                  for (let i = 0; i < inputChannel.length; i++) {
+                    outputChannel[i] = inputChannel[i];
+                  }
+                }
+              }
+              
+              return true;
             }
           }
           
-          ws.send(JSON.stringify(audioContent))
-        }
+          registerProcessor('passthrough-processor', PassthroughProcessor);
+        `;
+        
+        const blob = new Blob([audioWorkletCode], { type: 'application/javascript' });
+        const audioWorkletUrl = URL.createObjectURL(blob);
+        
+        await audioContext.audioWorklet.addModule(audioWorkletUrl);
+        
+        const workletNode = new AudioWorkletNode(audioContext, 'passthrough-processor');
+        audioWorkletNodeRef.current = workletNode;
+        
+        // Route audio through worklet to capture samples
+        const scriptProcessorForCapture = audioContext.createScriptProcessor(4096, 1, 1);
+        
+        source.connect(scriptProcessorForCapture);
+        source.connect(workletNode);
+        workletNode.connect(audioContext.destination);
+        
+        // Send audio data via WebSocket
+        scriptProcessorForCapture.onaudioprocess = (audioEvent) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            const inputData = audioEvent.inputBuffer.getChannelData(0)
+            
+            // Convert Float32Array to Int16Array (LINEAR16 PCM)
+            const int16Array = new Int16Array(inputData.length)
+            for (let i = 0; i < inputData.length; i++) {
+              const s = Math.max(-1, Math.min(1, inputData[i]))
+              int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+            }
+            
+            // Convert Int16Array to base64
+            const uint8Array = new Uint8Array(int16Array.buffer)
+            let binary = ''
+            for (let i = 0; i < uint8Array.length; i++) {
+              binary += String.fromCharCode(uint8Array[i])
+            }
+            const base64 = btoa(binary)
+            
+            const audioContent = {
+              audio: {
+                content: base64,
+              }
+            }
+            
+            ws.send(JSON.stringify(audioContent))
+          }
+        };
+        
+        // Keep reference to prevent garbage collection
+        mediaRecorderRef.current = scriptProcessorForCapture as any;
+        
+        console.log('[GoogleCloudSTT] Using AudioWorkletNode + ScriptProcessor (hybrid mode)');
+        
+      } catch (workletError) {
+        console.warn('[GoogleCloudSTT] AudioWorkletNode failed, using ScriptProcessor fallback:', workletError);
+        
+        // Fallback to deprecated but functional ScriptProcessor
+        const scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+        
+        source.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+        
+        scriptProcessor.onaudioprocess = (audioEvent) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            const inputData = audioEvent.inputBuffer.getChannelData(0)
+            
+            // Convert Float32Array to Int16Array (LINEAR16 PCM)
+            const int16Array = new Int16Array(inputData.length)
+            for (let i = 0; i < inputData.length; i++) {
+              const s = Math.max(-1, Math.min(1, inputData[i]))
+              int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF
+            }
+            
+            // Convert Int16Array to base64
+            const uint8Array = new Uint8Array(int16Array.buffer)
+            let binary = ''
+            for (let i = 0; i < uint8Array.length; i++) {
+              binary += String.fromCharCode(uint8Array[i])
+            }
+            const base64 = btoa(binary)
+            
+            const audioContent = {
+              audio: {
+                content: base64,
+              }
+            }
+            
+            ws.send(JSON.stringify(audioContent))
+          }
+        };
+        
+        mediaRecorderRef.current = scriptProcessor as any;
+        console.log('[GoogleCloudSTT] Using deprecated ScriptProcessor (browser may show warning)');
       }
-
-      // Connect the audio processing chain
-      source.connect(processor)
-      processor.connect(audioContext.destination)
-
-      // Keep processor alive by storing reference
-      mediaRecorderRef.current = processor as any
 
       console.log('[GoogleCloudSTT] Recording started');
 
     } catch (err: any) {
       console.error('[GoogleCloudSTT] Error starting recording:', err)
-      setError(`Failed to start: ${err.message || err}`)
+      const errorMessage = err.message || String(err)
+      setError(`Failed to start: ${errorMessage}`)
       cleanup()
     }
   }, [isSupported, cleanup])
