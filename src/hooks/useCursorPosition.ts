@@ -7,6 +7,7 @@ interface CursorPosition {
 
 export function useCursorPosition(ref: RefObject<HTMLElement | null>) {
   const [position, setPosition] = useState<CursorPosition>({ x: 50, y: 50 });
+  const lastPositionRef = useRef<CursorPosition>({ x: 50, y: 50 });
   
   useEffect(() => {
     const element = ref.current;
@@ -16,19 +17,17 @@ export function useCursorPosition(ref: RefObject<HTMLElement | null>) {
       const rect = element.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 100;
       const y = ((e.clientY - rect.top) / rect.height) * 100;
+      lastPositionRef.current = { x, y };
       setPosition({ x, y });
     };
     
-    const handleMouseLeave = () => {
-      setPosition({ x: 50, y: 50 });
-    };
+    // Don't reset on mouse leave - keep the last position
+    // This makes the gradient "freeze" at the edge where mouse exited
     
     element.addEventListener('mousemove', handleMouseMove);
-    element.addEventListener('mouseleave', handleMouseLeave);
     
     return () => {
       element.removeEventListener('mousemove', handleMouseMove);
-      element.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [ref]);
   
