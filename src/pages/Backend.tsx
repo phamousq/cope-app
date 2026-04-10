@@ -1,10 +1,10 @@
 import { Database } from 'lucide-react';
 
-export function FormData() {
+export function Backend() {
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h2 className="text-2xl font-bold text-slate-900">Form Data</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Backend</h2>
         <p className="text-slate-600 mt-1">
           View and export all collected form data.
         </p>
