@@ -13,6 +13,26 @@ COPE helps patients and providers have honest, clear conversations about cancer 
 - **100% client-side** — no server, no data persistence
 - **Session-only state** — data lives in browser memory only
 - **Client-side PDF generation** — PDFs are created in-browser with `@react-pdf/renderer`
+- **Voice input** — dictation via browser Web Speech API or AssemblyAI transcription
+- **Dark mode** — toggle between light, dark, and system theme
+
+---
+
+## Features
+
+### Voice Input
+Dictate clinical notes using your microphone. Transcriptions are processed via:
+- **Browser Web Speech API** — native, no setup required
+- **AssemblyAI** — alternative REST API transcription (configure via `VITE_ASSEMBLYAI_API_KEY`)
+
+### Dark Mode
+Toggle between light, dark, and system theme. Theme preference persists across sessions.
+
+### Landing Page
+Beautiful gradient landing page with orange/amber color palette and cursor-following effects.
+
+### Responsive Design
+Mobile-friendly with hamburger menu navigation and adaptive layouts.
 
 ---
 
