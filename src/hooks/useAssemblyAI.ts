@@ -92,7 +92,7 @@ export function useAssemblyAI() {
       }
 
       // AssemblyAI streaming endpoint - pass API key as query param for browser WebSocket
-      const wsUrl = `wss://api.assemblyai.com/v2/ws?api_key=${apiKey}`
+      const wsUrl = `wss://streaming.assemblyai.com/v3/ws?api_key=${apiKey}`
       console.log('[AssemblyAI] Connecting to WebSocket:', wsUrl.replace(apiKey, '***'));
       
       const ws = new WebSocket(wsUrl)
