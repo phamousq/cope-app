@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar/NavBar';
-import { Landing, PatientView, ProviderView, VoiceInput, Backend } from '@/pages';
+import { Landing, PatientView, PatientFormPage, ProviderView, VoiceInput, Backend } from '@/pages';
 import { TranscriptContext, getGlobalTranscript, setGlobalTranscript } from '@/contexts/TranscriptContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
@@ -22,6 +22,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/patient" element={<PatientView />} />
+              <Route path="/patient-form" element={<PatientFormPage />} />
               <Route path="/provider" element={<ProviderView />} />
               <Route path="/voice" element={<VoiceInput onTranscriptChange={updateTranscript} />} />
               <Route path="/backend" element={<Backend />} />

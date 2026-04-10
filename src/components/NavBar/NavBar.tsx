@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Mic, User, Database, Menu, X, Sun, Moon, Monitor } from 'lucide-react';
+import { Mic, User, Database, Menu, X, Sun, Moon, Monitor, ClipboardList } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 
 const navItems = [
   { path: '/voice', label: 'Voice Input', icon: Mic },
+  { path: '/patient-form', label: 'Patient Form', icon: ClipboardList },
   { path: '/provider', label: 'Provider View', icon: User },
   { path: '/patient', label: 'Patient View', icon: User },
   { path: '/backend', label: 'Backend', icon: Database },
