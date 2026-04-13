@@ -421,7 +421,13 @@ function computeOverallStage(t: string, n: string, m: string): string {
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 
 export function ProviderView() {
-  const [formData, setFormData] = useState<ProviderFormData>(initialFormData);
+  const [formData, setFormData] = useState<ProviderFormData>(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return {
+      ...initialFormData,
+      demographics: { ...initialFormData.demographics, dateOfDiagnosis: today },
+    };
+  });
   const { analysis, isLoading, error, analyze, clearAnalysis } = useAIAnalysis({
     apiKey: OPENROUTER_API_KEY,
     model: 'openai/gpt-oss-120b:free',
@@ -523,8 +529,8 @@ export function ProviderView() {
         {/* 1. PATIENT DEMOGRAPHICS */}
         <SectionCard title="Patient Demographics">
           <div className="space-y-4">
-            {/* Basic demographics - Sex, Age, Ethnicity */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {/* Basic demographics - Sex, Age, Ethnicity, Date of Diagnosis */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <SelectInput
                 label="Sex"
                 value={formData.demographics.sex}
@@ -566,15 +572,10 @@ export function ProviderView() {
                 placeholder="e.g., Non-Hispanic White"
                 required
               />
-            </div>
-
-            {/* Date of Diagnosis */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <TextInput
                 label="Date of Diagnosis"
                 value={formData.demographics.dateOfDiagnosis ?? ''}
                 onChange={(v) => updateDemographics('dateOfDiagnosis', v)}
-                placeholder="e.g., 2024-03-15"
                 type="date"
                 required
               />
