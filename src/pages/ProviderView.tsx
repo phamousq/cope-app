@@ -155,61 +155,17 @@ interface JsonInspectorProps {
 
 function JsonInspector({ data }: JsonInspectorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
-  const na = "N/A";
-  const sex = data.demographics.sex || na;
-  const age = data.age || na;
-  const ageGroup = data.demographics.ageGroup || na;
-  const ethnicity = data.demographics.ethnicity || na;
-  const diagDate = data.demographics.dateOfDiagnosis || na;
-  const cancerType = data.cancerDetails.typeOfCancer || data.cancerDetails.scientificName || na;
-  const site = data.cancerLocation || na;
-  const size = data.cancerSize || na;
-  const tStage = data.tStage || na;
-  const nStage = data.nStage || na;
-  const mStage = data.mStage || na;
-  const metastatic = data.cancerDetails.whereSpread || na;
-  const lymph = data.lymphNodes || na;
-  const markers = data.clinicalMolecular.molecularGenomicMarkers || na;
-  const nlr = data.clinicalMolecular.nlr || na;
-  const cea = data.clinicalMolecular.cea || na;
-  const ca125 = data.clinicalMolecular.ca125 || na;
-  const psa = data.clinicalMolecular.psa || na;
-  const ldh = data.clinicalMolecular.ldh || na;
-  const goals = data.treatmentPlan.goals ? data.treatmentPlan.goals.join(", ") : na;
-  const treatments = data.treatmentPlan.treatments ? data.treatmentPlan.treatments.join(", ") : na;
-  const ecog = data.patientFactors.ecogStatus || na;
-  const cci = data.patientFactors.charlsonComorbidityIndex || na;
-  const mgps = data.patientFactors.mgps || na;
+  // Build JSON output with today field
+  const jsonOutput = JSON.stringify({ ...data, today }, null, 2);
 
-  const lines = [
-    "--- Patient Demographics ---",
-    "Sex: " + sex + " | Age: " + age + " (" + ageGroup + ")",
-    "Ethnicity: " + ethnicity + " | Date of Diagnosis: " + diagDate,
-    "",
-    "--- Cancer Diagnosis ---",
-    "Primary Cancer / Histology: " + cancerType,
-    "Site: " + site + " | Size (mm): " + size,
-    "T: " + tStage + " | N: " + nStage + " | M: " + mStage,
-    "Metastatic Spread: " + metastatic + " | Lymph Nodes: " + lymph,
-    "",
-    "--- Molecular Markers ---",
-    "Markers: " + markers,
-    "",
-    "--- Biochemical Markers ---",
-    "NLR: " + nlr + " | CEA: " + cea + " | CA-125: " + ca125 + " | PSA: " + psa + " | LDH: " + ldh,
-    "",
-    "--- Treatment Plan ---",
-    "Goals: " + goals,
-    "Treatments: " + treatments,
-    "",
-    "--- Patient Factors ---",
-    "ECOG: " + ecog + " | CCI: " + cci + " | mGPS: " + mgps,
-    "",
-    "--- System ---",
-    "today: " + today,
-  ];
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(jsonOutput);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className={"fixed bottom-0 left-0 right-0 bg-slate-900 dark:bg-slate-950 border-t border-slate-700 z-50 transition-all duration-200 " + (isExpanded ? "max-h-[70vh]" : "")}>
@@ -224,9 +180,17 @@ function JsonInspector({ data }: JsonInspectorProps) {
         {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
       </button>
       {isExpanded && (
-        <pre className="px-4 pb-4 text-xs text-green-400 font-mono overflow-auto max-h-[calc(70vh-48px)]">
-          {lines.join("\n")}
-        </pre>
+        <div className="relative">
+          <button
+            onClick={handleCopy}
+            className="absolute top-2 right-2 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
+          >
+            {copied ? 'Copied!' : 'Copy JSON'}
+          </button>
+          <pre className="px-4 pb-4 pt-2 text-xs text-green-400 font-mono overflow-auto max-h-[calc(70vh-48px)]">
+            {jsonOutput}
+          </pre>
+        </div>
       )}
     </div>
   );
