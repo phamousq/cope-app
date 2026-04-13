@@ -162,9 +162,30 @@ function JsonInspector({ data }: JsonInspectorProps) {
   const jsonOutput = JSON.stringify({ ...data, today }, null, 2);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(jsonOutput);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(jsonOutput);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      // Fallback for older browsers or insecure contexts
+      const textArea = document.createElement('textarea');
+      textArea.value = jsonOutput;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (fallbackErr) {
+        console.error('Fallback copy also failed:', fallbackErr);
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   return (
