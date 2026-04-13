@@ -14,58 +14,8 @@ import {
   ChevronUp,
   AlertCircle,
 } from 'lucide-react';
-import type {
-  PatientFormData,
-  Demographics,
-  CancerDetails,
-  TreatmentPlan,
-  LikelihoodExpectations,
-  SurvivalWithoutTreatment,
-  LikelihoodOfCure,
-} from '@/types';
-
-// Mock data structure for demo (in production, this comes from Provider View JSON)
-interface ConsultationData {
-  demographics: Demographics;
-  cancerDetails: CancerDetails;
-  treatmentPlan: TreatmentPlan;
-  likelihoodExpectations: LikelihoodExpectations;
-  survivalWithoutTreatment: SurvivalWithoutTreatment;
-  patientFormComplete: boolean;
-  providerFormComplete: boolean;
-}
-
-const mockData: ConsultationData = {
-  demographics: {
-    sex: 'Male',
-    ageGroup: '60-69',
-    ethnicity: 'Not specified',
-  },
-  cancerDetails: {
-    typeOfCancer: 'Non-Small Cell Lung Cancer',
-    cancerStage: 'Stage 4 - Metastatic',
-    scientificName: 'Adenocarcinoma',
-    whereSpread: 'Lungs, Liver, and Bones',
-  },
-  treatmentPlan: {
-    goals: ['Better quality of life', 'Longer life'],
-    treatments: ['Chemotherapy', 'Immunotherapy'],
-  },
-  likelihoodExpectations: {
-    sixMonth: 'Likely (>75%)',
-    oneYear: 'Possible (25-75%)',
-    twoYear: 'Unlikely (<25%)',
-    fiveYear: 'Very unlikely (<1%)',
-  },
-  survivalWithoutTreatment: {
-    sixMonth: 'Unlikely (<25%)',
-    oneYear: 'Very unlikely (<1%)',
-    twoYear: null,
-    fiveYear: null,
-  },
-  patientFormComplete: true,
-  providerFormComplete: true,
-};
+import type { LikelihoodOfCure } from '@/types';
+import { useProviderData } from '@/contexts/ProviderDataContext';
 
 type Timeframe = 'sixMonth' | 'oneYear' | 'twoYear' | 'fiveYear';
 
@@ -76,14 +26,14 @@ const timeframeLabels: Record<Timeframe, string> = {
   fiveYear: '5 Years',
 };
 
-const likelihoodColors: Record<LikelihoodOfCure, { bg: string; text: string; border: string; bar: string }> = {
+const likelihoodColors: Record<string, { bg: string; text: string; border: string; bar: string }> = {
   'Very unlikely (<1%)': { bg: 'bg-red-50 dark:bg-red-950/30', text: 'text-red-700 dark:text-red-400', border: 'border-red-200 dark:border-red-800', bar: 'bg-red-500' },
   'Unlikely (<25%)': { bg: 'bg-orange-50 dark:bg-orange-950/30', text: 'text-orange-700 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', bar: 'bg-orange-500' },
   'Possible (25-75%)': { bg: 'bg-yellow-50 dark:bg-yellow-950/30', text: 'text-yellow-700 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800', bar: 'bg-yellow-500' },
   'Likely (>75%)': { bg: 'bg-green-50 dark:bg-green-950/30', text: 'text-green-700 dark:text-green-400', border: 'border-green-200 dark:border-green-800', bar: 'bg-green-500' },
 };
 
-function getLikelihoodPercent(likelihood: LikelihoodOfCure | null): number {
+function getLikelihoodPercent(likelihood: LikelihoodOfCure | null | string): number {
   if (!likelihood) return 0;
   if (likelihood.includes('Very unlikely')) return 0.5;
   if (likelihood.includes('Unlikely')) return 12.5;
@@ -92,7 +42,7 @@ function getLikelihoodPercent(likelihood: LikelihoodOfCure | null): number {
   return 0;
 }
 
-function SurvivalBar({ likelihood, label }: { likelihood: LikelihoodOfCure | null; label: string }) {
+function SurvivalBar({ likelihood, label }: { likelihood: LikelihoodOfCure | null | string; label: string }) {
   const percent = getLikelihoodPercent(likelihood);
   const colors = likelihood ? likelihoodColors[likelihood] : { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-500', border: 'border-slate-200 dark:border-slate-700', bar: 'bg-slate-300 dark:bg-slate-600' };
 
@@ -127,8 +77,18 @@ function StatusCard({ label, complete }: { label: string; complete: boolean }) {
   );
 }
 
-function DiagnosisNarrative({ data }: { data: ConsultationData }) {
-  const { demographics, cancerDetails } = data;
+function DiagnosisNarrative({ demographics, cancerDetails }: { demographics: { sex: string; ageGroup: string; ethnicity: string }; cancerDetails: { typeOfCancer: string; cancerStage: string; scientificName: string; whereSpread: string } }) {
+  const hasData = demographics.ageGroup && cancerDetails.typeOfCancer;
+
+  if (!hasData) {
+    return (
+      <div className="prose prose-lg dark:prose-invert max-w-none">
+        <p className="text-xl text-slate-500 dark:text-slate-400 leading-relaxed">
+          No diagnosis data available yet. Please complete the provider assessment to see your personalized overview.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="prose prose-lg dark:prose-invert max-w-none">
@@ -138,10 +98,10 @@ function DiagnosisNarrative({ data }: { data: ConsultationData }) {
       </p>
       <div className="mt-6 space-y-4 text-lg text-slate-600 dark:text-slate-400">
         <p>
-          <strong className="text-slate-900 dark:text-slate-100">Your Cancer:</strong> {cancerDetails.typeOfCancer} ({cancerDetails.scientificName})
+          <strong className="text-slate-900 dark:text-slate-100">Your Cancer:</strong> {cancerDetails.typeOfCancer} {cancerDetails.scientificName ? `(${cancerDetails.scientificName})` : ''}
         </p>
         <p>
-          <strong className="text-slate-900 dark:text-slate-100">Current Stage:</strong> {cancerDetails.cancerStage}
+          <strong className="text-slate-900 dark:text-slate-100">Current Stage:</strong> {cancerDetails.cancerStage || 'Not specified'}
         </p>
         <p>
           <strong className="text-slate-900 dark:text-slate-100">Where It Has Spread:</strong> {cancerDetails.whereSpread || 'Not specified'}
@@ -151,9 +111,9 @@ function DiagnosisNarrative({ data }: { data: ConsultationData }) {
   );
 }
 
-function TreatmentCard({ data }: { data: ConsultationData }) {
+function TreatmentCard({ treatmentPlan }: { treatmentPlan: { goals: string[]; treatments: string[]; response: string } }) {
   const [expanded, setExpanded] = useState(false);
-  const { treatmentPlan } = data;
+  const hasData = treatmentPlan.goals.length > 0 || treatmentPlan.treatments.length > 0;
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -183,23 +143,31 @@ function TreatmentCard({ data }: { data: ConsultationData }) {
         <div className="px-6 pb-6 space-y-6 border-t border-slate-100 dark:border-slate-700 pt-4">
           <div>
             <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Goals</h4>
-            <div className="flex flex-wrap gap-2">
-              {treatmentPlan.goals.map((goal) => (
-                <span key={goal} className="px-4 py-2 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 rounded-full text-base font-medium">
-                  {goal}
-                </span>
-              ))}
-            </div>
+            {hasData ? (
+              <div className="flex flex-wrap gap-2">
+                {treatmentPlan.goals.map((goal) => (
+                  <span key={goal} className="px-4 py-2 bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-300 rounded-full text-base font-medium">
+                    {goal}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 dark:text-slate-400 italic">No goals specified</p>
+            )}
           </div>
           <div>
             <h4 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Recommended Treatments</h4>
-            <div className="flex flex-wrap gap-2">
-              {treatmentPlan.treatments.map((treatment) => (
-                <span key={treatment} className="px-4 py-2 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-full text-base font-medium">
-                  {treatment}
-                </span>
-              ))}
-            </div>
+            {hasData ? (
+              <div className="flex flex-wrap gap-2">
+                {treatmentPlan.treatments.map((treatment) => (
+                  <span key={treatment} className="px-4 py-2 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-full text-base font-medium">
+                    {treatment}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 dark:text-slate-400 italic">No treatments specified</p>
+            )}
           </div>
         </div>
       )}
@@ -207,9 +175,18 @@ function TreatmentCard({ data }: { data: ConsultationData }) {
   );
 }
 
-function SurvivalCard({ data }: { data: ConsultationData }) {
+function SurvivalCard({ survivalSources }: { survivalSources: Array<{ source: string; likelihoodOfCure: string; sixMonth: number; oneYear: number; twoYear: number; fiveYear: number }> }) {
   const [expanded, setExpanded] = useState(false);
-  const { likelihoodExpectations, survivalWithoutTreatment } = data;
+  const primarySource = survivalSources[0];
+  const hasData = primarySource && (primarySource.sixMonth > 0 || primarySource.oneYear > 0 || primarySource.twoYear > 0 || primarySource.fiveYear > 0);
+
+  const getLikelihood = (value: number): LikelihoodOfCure | null => {
+    if (value === 0) return null;
+    if (value < 1) return 'Very unlikely (<1%)';
+    if (value < 25) return 'Unlikely (<25%)';
+    if (value <= 75) return 'Possible (25-75%)';
+    return 'Likely (>75%)';
+  };
 
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -223,7 +200,7 @@ function SurvivalCard({ data }: { data: ConsultationData }) {
           </div>
           <div className="text-left">
             <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Survival Statistics</h3>
-            <p className="text-slate-600 dark:text-slate-400">With vs. without treatment</p>
+            <p className="text-slate-600 dark:text-slate-400">{primarySource?.source || 'No assessment yet'}</p>
           </div>
         </div>
         {expanded ? (
@@ -235,29 +212,35 @@ function SurvivalCard({ data }: { data: ConsultationData }) {
 
       {expanded && (
         <div className="px-6 pb-6 border-t border-slate-100 dark:border-slate-700 pt-4 space-y-6">
-          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
-              <h4 className="font-bold text-green-800 dark:text-green-300">With Treatment</h4>
-            </div>
-            <div className="space-y-4">
-              {(Object.keys(timeframeLabels) as Timeframe[]).map((tf) => (
-                <SurvivalBar key={tf} label={timeframeLabels[tf]} likelihood={likelihoodExpectations[tf]} />
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <AlertCircle className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-              <h4 className="font-bold text-slate-700 dark:text-slate-300">Without Treatment (For Reference)</h4>
-            </div>
-            <div className="space-y-4">
-              {(Object.keys(timeframeLabels) as Timeframe[]).map((tf) => (
-                <SurvivalBar key={tf} label={timeframeLabels[tf]} likelihood={survivalWithoutTreatment[tf]} />
-              ))}
-            </div>
-          </div>
+          {hasData ? (
+            <>
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Heart className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <h4 className="font-bold text-green-800 dark:text-green-300">With Treatment ({primarySource.source})</h4>
+                </div>
+                <div className="space-y-4">
+                  <SurvivalBar label="6 Months" likelihood={getLikelihood(primarySource.sixMonth)} />
+                  <SurvivalBar label="1 Year" likelihood={getLikelihood(primarySource.oneYear)} />
+                  <SurvivalBar label="2 Years" likelihood={getLikelihood(primarySource.twoYear)} />
+                  <SurvivalBar label="5 Years" likelihood={getLikelihood(primarySource.fiveYear)} />
+                </div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertCircle className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                  <h4 className="font-bold text-slate-700 dark:text-slate-300">Without Treatment (For Reference)</h4>
+                </div>
+                <p className="text-slate-600 dark:text-slate-400 text-sm">
+                  Survival estimates without treatment are generally lower. This is shown for reference only.
+                </p>
+              </div>
+            </>
+          ) : (
+            <p className="text-slate-500 dark:text-slate-400 text-center py-4 italic">
+              No survival statistics available yet. Complete the provider assessment to see estimates.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -265,7 +248,7 @@ function SurvivalCard({ data }: { data: ConsultationData }) {
 }
 
 export function PatientView() {
-  const [data] = useState<ConsultationData>(mockData); // In production, load from Provider View JSON
+  const { formData } = useProviderData();
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -275,8 +258,14 @@ export function PatientView() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const { patientFormComplete, providerFormComplete } = data;
-  const allComplete = patientFormComplete && providerFormComplete;
+  const { demographics, cancerDetails, treatmentPlan, prognosisData } = formData;
+
+  // Check if forms have data
+  const hasPatientData = !!(demographics.sex || demographics.ethnicity);
+  const hasProviderData = !!(cancerDetails.typeOfCancer || treatmentPlan.goals.length > 0);
+  const hasSurvivalData = prognosisData.survivalSources.some(s => s.sixMonth > 0 || s.oneYear > 0 || s.twoYear > 0 || s.fiveYear > 0);
+
+  const allComplete = hasPatientData && hasProviderData && hasSurvivalData;
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -297,8 +286,8 @@ export function PatientView() {
           Form Completion Status
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <StatusCard label="Patient Information" complete={patientFormComplete} />
-          <StatusCard label="Provider Assessment" complete={providerFormComplete} />
+          <StatusCard label="Patient Information" complete={hasPatientData} />
+          <StatusCard label="Provider Assessment" complete={hasProviderData} />
         </div>
         {!allComplete && (
           <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
@@ -322,16 +311,16 @@ export function PatientView() {
               <p className="text-slate-600 dark:text-slate-400">Understanding your cancer</p>
             </div>
           </div>
-          <DiagnosisNarrative data={data} />
+          <DiagnosisNarrative demographics={demographics} cancerDetails={cancerDetails} />
         </section>
 
         {/* Treatment Card */}
-        <TreatmentCard data={data} />
+        <TreatmentCard treatmentPlan={treatmentPlan} />
       </div>
 
       {/* Survival Statistics - Full Width */}
       <section className="mb-8">
-        <SurvivalCard data={data} />
+        <SurvivalCard survivalSources={prognosisData.survivalSources} />
       </section>
 
       {/* Key Insights */}
@@ -344,9 +333,11 @@ export function PatientView() {
           <p>
             These statistics are based on research from large groups of patients with similar cancers. They represent averages — your individual experience may be different.
           </p>
-          <p>
-            <strong>Your treatment plan</strong> combines {data.treatmentPlan.treatments.join(' and ')} to achieve your goals of {data.treatmentPlan.goals.join(' and ')}.
-          </p>
+          {treatmentPlan.treatments.length > 0 && treatmentPlan.goals.length > 0 && (
+            <p>
+              <strong>Your treatment plan</strong> combines {treatmentPlan.treatments.join(' and ')} to achieve your goals of {treatmentPlan.goals.join(' and ')}.
+            </p>
+          )}
           <p>
             Talk with your care team about any questions. This information is meant to support your conversation, not replace it.
           </p>
