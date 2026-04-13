@@ -610,18 +610,32 @@ export function ProviderView() {
         {/* 2. CANCER DIAGNOSIS */}
         <SectionCard title="Cancer Diagnosis">
           <div className="space-y-4">
-            {/* Primary cancer type = histology */}
-            <TextInput
-              label="Primary Cancer Type / Histology"
-              value={formData.cancerDetails.scientificName || formData.cancerDetails.typeOfCancer}
-              onChange={(v) => {
-                updateCancerDetails('typeOfCancer', v);
-                updateCancerDetails('scientificName', v);
-              }}
-              placeholder="e.g., Non-Small Cell Lung Cancer, Adenocarcinoma"
-              className="sm:col-span-2"
-              tooltip="Enter the primary cancer type or histology. This is used as the cancer type for prognosis estimation."
-            />
+            {/* Primary cancer type + site + size on same row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <TextInput
+                label="Primary Cancer Type / Histology"
+                value={formData.cancerDetails.scientificName || formData.cancerDetails.typeOfCancer}
+                onChange={(v) => {
+                  updateCancerDetails('typeOfCancer', v);
+                  updateCancerDetails('scientificName', v);
+                }}
+                placeholder="Non-Small Cell Lung Cancer..."
+                tooltip="Enter the primary cancer type or histology. This is used as the cancer type for prognosis estimation."
+              />
+              <TextInput
+                label="Primary Site / Location"
+                value={formData.cancerLocation}
+                onChange={(v) => setFormData((prev) => ({ ...prev, cancerLocation: v }))}
+                placeholder="e.g., Right upper lobe"
+              />
+              <TextInput
+                label="Size (mm)"
+                value={formData.cancerSize}
+                onChange={(v) => setFormData((prev) => ({ ...prev, cancerSize: v }))}
+                placeholder="e.g., 45"
+                type="number"
+              />
+            </div>
 
             {/* TNM Staging - free text inputs with hover showing options */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -648,35 +662,20 @@ export function ProviderView() {
               />
             </div>
 
-            {/* Histology row: location (= whereSpread), size, lymph nodes */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <TextInput
-                label="Primary Site / Location"
-                value={formData.cancerLocation}
-                onChange={(v) => setFormData((prev) => ({ ...prev, cancerLocation: v }))}
-                placeholder="e.g., Right upper lobe"
-              />
-              <TextInput
-                label="Size (mm)"
-                value={formData.cancerSize}
-                onChange={(v) => setFormData((prev) => ({ ...prev, cancerSize: v }))}
-                placeholder="e.g., 45"
-                type="number"
-              />
-              <TextInput
-                label="Lymph Nodes Involved"
-                value={formData.lymphNodes}
-                onChange={(v) => setFormData((prev) => ({ ...prev, lymphNodes: v }))}
-                placeholder="e.g., 0, 2, 5+"
-              />
-            </div>
-
             {/* Metastatic spread */}
             <TextInput
               label="Metastatic Spread"
               value={formData.cancerDetails.whereSpread}
               onChange={(v) => updateCancerDetails('whereSpread', v)}
               placeholder="e.g., Bones, liver, lungs — or 'Localized'"
+            />
+
+            {/* Lymph Nodes */}
+            <TextInput
+              label="Lymph Nodes Involved"
+              value={formData.lymphNodes}
+              onChange={(v) => setFormData((prev) => ({ ...prev, lymphNodes: v }))}
+              placeholder="e.g., 0, 2, 5+"
             />
           </div>
         </SectionCard>
