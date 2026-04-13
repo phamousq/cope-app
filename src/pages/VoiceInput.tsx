@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Mic, Square, Copy, Trash2, Upload, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mic, Square, Copy, Trash2, Upload, Download, Sparkles, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAssemblyAITranscription } from '@/hooks/useAssemblyAIRest';
+import { useGeminiParse } from '@/hooks/useGeminiParse';
+import { useProviderData } from '@/contexts/ProviderDataContext';
 
 interface VoiceInputProps {
   onTranscriptChange?: (transcript: string) => void;
@@ -14,6 +17,9 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
   
   const recorder = useAudioRecorder();
   const assemblyAI = useAssemblyAITranscription();
+  const gemini = useGeminiParse();
+  const { setFormData } = useProviderData();
+  const navigate = useNavigate();
   
   const isRecording = recorder.recordingState === 'recording';
   const isProcessing = recorder.recordingState === 'processing' || isUploading || assemblyAI.isTranscribing;
@@ -56,6 +62,86 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
     recorder.resetRecording();
     assemblyAI.transcript && (assemblyAI.transcript = null);
     setManualTranscript('');
+  };
+
+  const handleParseTranscript = async () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
+    const model = (import.meta.env.VITE_GEMINI_MODEL as string) || 'gemini-2.0-flash';
+
+    if (!apiKey) {
+      alert('VITE_GEMINI_API_KEY is not configured. Please add your Google AI Studio API key to the .env file.');
+      return;
+    }
+
+    const result = await gemini.parse(displayTranscript, apiKey, model);
+    if (!result) return;
+
+    // Fill ProviderDataContext with parsed data
+    setFormData((prev) => ({
+      ...prev,
+      // Demographics
+      demographics: {
+        ...prev.demographics,
+        sex: result.sex || prev.demographics.sex,
+        ageGroup: (result.ageGroup || prev.demographics.ageGroup) as typeof prev.demographics.ageGroup,
+        ethnicity: result.ethnicity || prev.demographics.ethnicity,
+        dateOfDiagnosis: result.dateOfDiagnosis || prev.demographics.dateOfDiagnosis,
+      },
+      // Numeric age (separate field in ProviderView)
+      age: result.numericAge || prev.age,
+      // Cancer Details
+      cancerDetails: {
+        ...prev.cancerDetails,
+        typeOfCancer: result.typeOfCancer || prev.cancerDetails.typeOfCancer,
+        cancerStage: (result.overallStage || prev.cancerDetails.cancerStage) as typeof prev.cancerDetails.cancerStage,
+        scientificName: result.scientificName || prev.cancerDetails.scientificName,
+        whereSpread: result.metastaticSpread || prev.cancerDetails.whereSpread,
+      },
+      // Top-level fields
+      cancerSize: result.cancerSize || prev.cancerSize,
+      // TNM stages + lymph
+      tStage: result.tStage || prev.tStage,
+      nStage: result.nStage || prev.nStage,
+      mStage: result.mStage || prev.mStage,
+      lymphNodes: result.lymphNodes || prev.lymphNodes,
+      // Clinical Molecular
+      clinicalMolecular: {
+        ...prev.clinicalMolecular,
+        molecularGenomicMarkers: result.molecularGenomicMarkers || prev.clinicalMolecular.molecularGenomicMarkers,
+        nlr: result.nlr || prev.clinicalMolecular.nlr,
+        cea: result.cea || prev.clinicalMolecular.cea,
+        ca125: result.ca125 || prev.clinicalMolecular.ca125,
+        psa: result.psa || prev.clinicalMolecular.psa,
+        psaDoublingTime: result.psaDoublingTime || prev.clinicalMolecular.psaDoublingTime,
+        ldh: result.ldh || prev.clinicalMolecular.ldh,
+        treatmentResponse: result.treatmentResponse || prev.clinicalMolecular.treatmentResponse,
+        cellDiff: result.cellDiff || prev.clinicalMolecular.cellDiff,
+      },
+      // Patient Factors
+      patientFactors: {
+        ...prev.patientFactors,
+        ecogStatus: result.ecogStatus || prev.patientFactors.ecogStatus,
+        charlsonComorbidityIndex: result.charlsonComorbidityIndex || prev.patientFactors.charlsonComorbidityIndex,
+        mgps: result.mgps || prev.patientFactors.mgps,
+        physiologicAge: result.physiologicAge || prev.patientFactors.physiologicAge,
+      },
+      // Treatment Plan
+      treatmentPlan: {
+        ...prev.treatmentPlan,
+        goals: result.treatmentGoals?.length ? result.treatmentGoals as typeof prev.treatmentPlan.goals : prev.treatmentPlan.goals,
+        treatments: result.treatments?.length ? result.treatments as typeof prev.treatmentPlan.treatments : prev.treatmentPlan.treatments,
+      },
+      // Prognosis Data - survival estimates
+      prognosisData: {
+        ...prev.prognosisData,
+        additionalContext: result.survivalEstimates?.sixMonth
+          ? `Transcript-parsed survival estimates. Six-month: ${result.survivalEstimates.sixMonth}, One-year: ${result.survivalEstimates.oneYear || 'N/A'}, Two-year: ${result.survivalEstimates.twoYear || 'N/A'}, Five-year: ${result.survivalEstimates.fiveYear || 'N/A'}`
+          : prev.prognosisData.additionalContext,
+      },
+    }));
+
+    // Navigate to Provider View
+    navigate('/provider');
   };
 
   const handleDownloadAudio = () => {
@@ -239,7 +325,29 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
               Clear
             </button>
           )}
+          <Button
+            onClick={handleParseTranscript}
+            disabled={!displayTranscript || gemini.isParsing}
+            className="text-sm bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0"
+          >
+            {gemini.isParsing ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Parsing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" />
+                Fill Provider View
+              </>
+            )}
+          </Button>
         </div>
+        {gemini.error && (
+          <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-700 dark:text-red-300">{gemini.error}</p>
+          </div>
+        )}
       </div>
 
       {/* Info */}
