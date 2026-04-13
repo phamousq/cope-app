@@ -100,6 +100,7 @@ const initialFormData: ProviderFormData = {
     sex: 'Male',
     ageGroup: '50-59',
     ethnicity: '',
+    dateOfDiagnosis: '',
   },
   cancerDetails: {
     typeOfCancer: '',
@@ -187,14 +188,15 @@ interface SelectInputProps {
   options: readonly string[];
   className?: string;
   helpUrl?: string;
+  required?: boolean;
 }
 
-function SelectInput({ label, value, onChange, options, className = '', helpUrl }: SelectInputProps) {
+function SelectInput({ label, value, onChange, options, className = '', helpUrl, required }: SelectInputProps) {
   return (
     <div className={className}>
       <div className="flex items-center gap-1 mb-1">
         <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-          {label}
+          {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
         {helpUrl && (
           <a
@@ -211,7 +213,8 @@ function SelectInput({ label, value, onChange, options, className = '', helpUrl 
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
+        required={required}
+        className={`w-full px-3 py-2 bg-white dark:bg-slate-700 border rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent ${required && !value ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}`}
       >
         <option value="">Select...</option>
         {options.map((opt) => (
@@ -233,14 +236,15 @@ interface TextInputProps {
   type?: string;
   helpUrl?: string;
   tooltip?: string;
+  required?: boolean;
 }
 
-function TextInput({ label, value, onChange, placeholder, className = '', type = 'text', helpUrl, tooltip }: TextInputProps) {
+function TextInput({ label, value, onChange, placeholder, className = '', type = 'text', helpUrl, tooltip, required }: TextInputProps) {
   return (
     <div className={className}>
       <div className="flex items-center gap-1 mb-1">
         <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-          {label}
+          {label}{required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
         {helpUrl && (
           <a
@@ -267,7 +271,8 @@ function TextInput({ label, value, onChange, placeholder, className = '', type =
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
+        required={required}
+        className={`w-full px-3 py-2 bg-white dark:bg-slate-700 border rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent ${required && !value ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}`}
       />
     </div>
   );
@@ -524,18 +529,22 @@ export function ProviderView() {
                 value={formData.demographics.sex}
                 onChange={(v) => updateDemographics('sex', v as Demographics['sex'])}
                 options={SEX_OPTIONS}
+                required
               />
               <div className="flex flex-col">
                 <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-                  Age
+                  Age<span className="text-red-500 ml-0.5">*</span>
                 </label>
                 <input
                   type="number"
-                  value={formData.demographics.ageGroup && !formData.demographics.ageGroup.includes('-') ? formData.demographics.ageGroup : ''}
+                  value={formData.age}
                   onChange={(e) => {
-                    const age = parseInt(e.target.value);
-                    if (isNaN(age)) { updateDemographics('ageGroup', ''); return; }
-                    if (age < 35) updateDemographics('ageGroup', '18-34');
+                    const rawAge = e.target.value;
+                    setFormData((prev) => ({ ...prev, age: rawAge }));
+                    const age = parseInt(rawAge);
+                    if (isNaN(age) || rawAge === '') {
+                      updateDemographics('ageGroup', '');
+                    } else if (age < 35) updateDemographics('ageGroup', '18-34');
                     else if (age < 50) updateDemographics('ageGroup', '35-49');
                     else if (age < 60) updateDemographics('ageGroup', '50-59');
                     else if (age < 70) updateDemographics('ageGroup', '60-69');
@@ -545,7 +554,8 @@ export function ProviderView() {
                   placeholder="e.g., 55"
                   min="18"
                   max="120"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
+                  required
+                  className={`w-full px-3 py-2 bg-white dark:bg-slate-700 border rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent ${!formData.age ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}`}
                 />
               </div>
               <TextInput
@@ -553,6 +563,19 @@ export function ProviderView() {
                 value={formData.demographics.ethnicity}
                 onChange={(v) => updateDemographics('ethnicity', v)}
                 placeholder="e.g., Non-Hispanic White"
+                required
+              />
+            </div>
+
+            {/* Date of Diagnosis */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <TextInput
+                label="Date of Diagnosis"
+                value={formData.demographics.dateOfDiagnosis ?? ''}
+                onChange={(v) => updateDemographics('dateOfDiagnosis', v)}
+                placeholder="e.g., 2024-03-15"
+                type="date"
+                required
               />
             </div>
 
@@ -868,55 +891,52 @@ export function ProviderView() {
           </div>
         </SectionCard>
 
-        {/* 8. REGISTRY & POPULATION DATA */}
-        <SectionCard title="Registry & Population Data">
-          <div className="space-y-4">
-            {/* Social & Geographic */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <SelectInput
-                label="Marital Status"
-                value={formData.seerRegistry.maritalStatus}
-                onChange={(v) => updateSeerRegistry('maritalStatus', v)}
-                options={MARITAL_STATUS_OPTIONS}
-              />
-              <TextInput
-                label="Year of Diagnosis"
-                value={formData.seerRegistry.yearOfDiagnosis}
-                onChange={(v) => updateSeerRegistry('yearOfDiagnosis', v)}
-                placeholder="e.g., 2023"
-                type="number"
-              />
-              <TextInput
-                label="County of Residence"
-                value={formData.seerRegistry.countyOfResidence}
-                onChange={(v) => updateSeerRegistry('countyOfResidence', v)}
-                placeholder="e.g., Travis County, TX"
-              />
-              <SelectInput
-                label="Urbanicity (RUCC)"
-                value={formData.seerRegistry.urbanicity}
-                onChange={(v) => updateSeerRegistry('urbanicity', v)}
-                options={URBANICITY_OPTIONS}
-              />
-            </div>
-
-            {/* Histologic grade & smoking */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <SelectInput
-                label="Histologic Grade"
-                value={formData.seerRegistry.histologicGrade}
-                onChange={(v) => updateSeerRegistry('histologicGrade', v)}
-                options={HISTOLOGIC_GRADE_OPTIONS}
-              />
-              <SelectInput
-                label="Smoking History"
-                value={formData.seerRegistry.smokingHistory}
-                onChange={(v) => updateSeerRegistry('smokingHistory', v)}
-                options={SMOKING_HISTORY_OPTIONS}
-              />
-            </div>
-          </div>
-        </SectionCard>
+        {/* [8. REGISTRY & POPULATION DATA - commented out for future use]
+        {/* <SectionCard title="Registry & Population Data"> */}
+        {/*   <div className="space-y-4"> */}
+        {/*     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"> */}
+        {/*       <SelectInput */}
+        {/*         label="Marital Status" */}
+        {/*         value={formData.seerRegistry.maritalStatus} */}
+        {/*         onChange={(v) => updateSeerRegistry('maritalStatus', v)} */}
+        {/*         options={MARITAL_STATUS_OPTIONS} */}
+        {/*       /> */}
+        {/*       <TextInput */}
+        {/*         label="Year of Diagnosis" */}
+        {/*         value={formData.seerRegistry.yearOfDiagnosis} */}
+        {/*         onChange={(v) => updateSeerRegistry('yearOfDiagnosis', v)} */}
+        {/*         placeholder="e.g., 2023" */}
+        {/*         type="number" */}
+        {/*       /> */}
+        {/*       <TextInput */}
+        {/*         label="County of Residence" */}
+        {/*         value={formData.seerRegistry.countyOfResidence} */}
+        {/*         onChange={(v) => updateSeerRegistry('countyOfResidence', v)} */}
+        {/*         placeholder="e.g., Travis County, TX" */}
+        {/*       /> */}
+        {/*       <SelectInput */}
+        {/*         label="Urbanicity (RUCC)" */}
+        {/*         value={formData.seerRegistry.urbanicity} */}
+        {/*         onChange={(v) => updateSeerRegistry('urbanicity', v)} */}
+        {/*         options={URBANICITY_OPTIONS} */}
+        {/*       /> */}
+        {/*     </div> */}
+        {/*     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> */}
+        {/*       <SelectInput */}
+        {/*         label="Histologic Grade" */}
+        {/*         value={formData.seerRegistry.histologicGrade} */}
+        {/*         onChange={(v) => updateSeerRegistry('histologicGrade', v)} */}
+        {/*         options={HISTOLOGIC_GRADE_OPTIONS} */}
+        {/*       /> */}
+        {/*       <SelectInput */}
+        {/*         label="Smoking History" */}
+        {/*         value={formData.seerRegistry.smokingHistory} */}
+        {/*         onChange={(v) => updateSeerRegistry('smokingHistory', v)} */}
+        {/*         options={SMOKING_HISTORY_OPTIONS} */}
+        {/*       /> */}
+        {/*     </div> */}
+        {/*   </div> */}
+        {/* </SectionCard> */}
       </main>
 
       {/* JSONL Inspector */}

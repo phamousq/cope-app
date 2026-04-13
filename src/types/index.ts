@@ -3,6 +3,7 @@ export interface Demographics {
   sex: 'Male' | 'Female';
   ageGroup: AgeGroup | '';
   ethnicity: string;
+  dateOfDiagnosis?: string;
 }
 
 export type AgeGroup = '18-34' | '35-49' | '50-59' | '60-69' | '70-79' | '80-90' | '';
