@@ -577,7 +577,7 @@ export function ProviderView() {
                 value={formData.patientFactors.mgps}
                 onChange={(v) => updatePatientFactors('mgps', v)}
                 options={MGPS_OPTIONS}
-                helpUrl="https://www.mdcalc.com/mGPS-modified-glasgow-prognostic-score"
+                helpUrl="https://www.mdcalc.com/calc/3312/modified-glasgow-prognostic-score-mgps-cancer-outcomes"
               />
             </div>
           </div>
