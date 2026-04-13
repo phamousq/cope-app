@@ -20,6 +20,7 @@ export interface ProviderFormData {
     psaDoublingTime: string;
     ldh: string;
     treatmentResponse: string;
+    cellDiff: string;
   };
   treatmentPlan: TreatmentPlan & { response: string };
   patientFactors: {
@@ -70,6 +71,7 @@ const defaultFormData: ProviderFormData = {
     psaDoublingTime: '',
     ldh: '',
     treatmentResponse: '',
+    cellDiff: '',
   },
   treatmentPlan: {
     goals: [],
