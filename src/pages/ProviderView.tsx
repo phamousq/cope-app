@@ -6,8 +6,6 @@ import type {
   CancerDetails,
   TreatmentPlan,
   PrognosisData,
-  CancerStage,
-  AgeGroup,
   TreatmentGoal,
   Treatment,
   LikelihoodOfCure,
@@ -25,20 +23,13 @@ const CCI_OPTIONS = ['', '0', '1', '2', '3', '4', '5+'];
 const MGPS_OPTIONS = ['', '0 (Low risk)', '1 (Intermediate)', '2 (High risk)'];
 
 // SEER Registry options
-const SEER_STAGE_OPTIONS = ['', 'Localized', 'Regional', 'Distant'];
 const HISTOLOGIC_GRADE_OPTIONS = ['', 'Grade I (Well differentiated)', 'Grade II (Moderately differentiated)', 'Grade III (Poorly differentiated)', 'Grade IV (Undifferentiated)', 'Not applicable'];
-const RACE_ETHNICITY_OPTIONS = ['', 'Non-Hispanic White', 'Non-Hispanic Black', 'Hispanic', 'Asian/Pacific Islander', 'American Indian/Alaska Native', 'Unknown'];
 const MARITAL_STATUS_OPTIONS = ['', 'Single (never married)', 'Married', 'Separated', 'Divorced', 'Widowed', 'Unmarried or domestic partner', 'Unknown'];
 const SMOKING_HISTORY_OPTIONS = ['', 'Never smoker', 'Former smoker', 'Current smoker', 'Unknown'];
 const URBANICITY_OPTIONS = ['', '1 - Metro counties (pop ≥1 million)', '2 - Metro counties (pop <1 million)', '3 - Urban counties', '4 - Less urban counties', '5 - Completely rural counties', 'Unknown'];
 
 interface SeerRegistryData {
-  primaryCancerSite: string;
-  seerSummaryStage: string;
-  histologicType: string;
   histologicGrade: string;
-  ageAtDiagnosis: string;
-  raceEthnicity: string;
   maritalStatus: string;
   countyOfResidence: string;
   urbanicity: string;
@@ -84,13 +75,6 @@ interface ProviderFormData {
 }
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other'] as const;
-const AGE_GROUP_OPTIONS: AgeGroup[] = ['18-34', '35-49', '50-59', '60-69', '70-79', '80-90'];
-const CANCER_STAGE_OPTIONS: CancerStage[] = [
-  'Stage 1 - Localized',
-  'Stage 2 - Localized',
-  'Stage 3 - Regional',
-  'Stage 4 - Metastatic',
-];
 const TREATMENT_GOALS: TreatmentGoal[] = [
   'Cure',
   'Remission',
@@ -154,12 +138,7 @@ const initialFormData: ProviderFormData = {
     physiologicAge: '',
   },
   seerRegistry: {
-    primaryCancerSite: '',
-    seerSummaryStage: '',
-    histologicType: '',
     histologicGrade: '',
-    ageAtDiagnosis: '',
-    raceEthnicity: '',
     maritalStatus: '',
     countyOfResidence: '',
     urbanicity: '',
@@ -426,6 +405,18 @@ export function ProviderView() {
     ? formData.prognosisData.survivalSources
     : [{ source: 'Provider Estimate', likelihoodOfCure: 'Possible (25-75%)', sixMonth: 0, oneYear: 0, twoYear: 0, fiveYear: 0 }];
 
+  // Compute overall stage from TNM for AI analysis
+  const computeStageFromTNM = (t: string, n: string, m: string): string | undefined => {
+    if (!t && !n && !m) return undefined;
+    // Simple stage grouping based on TNM
+    if (m && m !== 'M0' && m !== 'MX') return 'Stage 4 - Metastatic';
+    if (n && (n === 'N2' || n === 'N3')) return 'Stage 3 - Regional';
+    if (t && (t === 'T3' || t === 'T4')) return 'Stage 3 - Regional';
+    if (t && (t === 'T1b' || t === 'T2')) return 'Stage 2 - Localized';
+    if (t && t.startsWith('T1')) return 'Stage 1 - Localized';
+    return undefined;
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-24">
       {/* Header */}
@@ -455,26 +446,12 @@ export function ProviderView() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Demographics Section */}
         <SectionCard title="Patient Demographics">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <SelectInput
-              label="Sex at Birth"
-              value={formData.demographics.sex}
-              onChange={(v) => updateDemographics('sex', v as Demographics['sex'])}
-              options={SEX_OPTIONS}
-            />
-            <SelectInput
-              label="Age Group"
-              value={formData.demographics.ageGroup}
-              onChange={(v) => updateDemographics('ageGroup', v as AgeGroup)}
-              options={AGE_GROUP_OPTIONS}
-            />
-            <TextInput
-              label="Ethnicity / Race"
-              value={formData.demographics.ethnicity}
-              onChange={(v) => updateDemographics('ethnicity', v)}
-              placeholder="e.g., Hispanic/Latino, Non-Hispanic Black..."
-            />
-          </div>
+          <SelectInput
+            label="Sex at Birth"
+            value={formData.demographics.sex}
+            onChange={(v) => updateDemographics('sex', v as Demographics['sex'])}
+            options={SEX_OPTIONS}
+          />
         </SectionCard>
 
         {/* Cancer Details Section */}
@@ -487,12 +464,6 @@ export function ProviderView() {
               placeholder="e.g., Non-Small Cell Lung Cancer"
               className="sm:col-span-2"
             />
-            <SelectInput
-              label="Cancer Stage"
-              value={formData.cancerDetails.cancerStage}
-              onChange={(v) => updateCancerDetails('cancerStage', v as CancerStage)}
-              options={CANCER_STAGE_OPTIONS}
-            />
             <TextInput
               label="Histology / Scientific Name"
               value={formData.cancerDetails.scientificName}
@@ -504,7 +475,6 @@ export function ProviderView() {
               value={formData.cancerDetails.whereSpread}
               onChange={(v) => updateCancerDetails('whereSpread', v)}
               placeholder="e.g., Bones, liver, lungs"
-              className="sm:col-span-2"
             />
           </div>
         </SectionCard>
@@ -578,14 +548,15 @@ export function ProviderView() {
                     if (analysis) {
                       clearAnalysis();
                     } else {
+                      const tnmStage = formData.clinicalMolecular.tStage || formData.clinicalMolecular.nStage || formData.clinicalMolecular.mStage
+                        ? { t: formData.clinicalMolecular.tStage, n: formData.clinicalMolecular.nStage, m: formData.clinicalMolecular.mStage }
+                        : undefined;
                       analyze({
                         cancerType: formData.cancerDetails.typeOfCancer,
-                        cancerStage: formData.cancerDetails.cancerStage,
+                        cancerStage: computeStageFromTNM(formData.clinicalMolecular.tStage, formData.clinicalMolecular.nStage, formData.clinicalMolecular.mStage) ?? '',
                         treatmentGoals: formData.treatmentPlan.goals,
                         treatments: formData.treatmentPlan.treatments,
-                        tnmStage: formData.clinicalMolecular.tStage || formData.clinicalMolecular.nStage || formData.clinicalMolecular.mStage
-                          ? { t: formData.clinicalMolecular.tStage, n: formData.clinicalMolecular.nStage, m: formData.clinicalMolecular.mStage }
-                          : undefined,
+                        tnmStage,
                         molecularMarkers: formData.clinicalMolecular.molecularGenomicMarkers,
                         biomarkers: {
                           nlr: formData.clinicalMolecular.nlr,
@@ -775,35 +746,11 @@ export function ProviderView() {
           </div>
         </SectionCard>
 
-        {/* SEER Registry Data Section */}
-        <SectionCard title="SEER Registry Data">
+        {/* Registry Data Section */}
+        <SectionCard title="Registry & Population Data">
           <div className="space-y-4">
-            {/* Cancer Classification */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <TextInput
-                label="Primary Cancer Site (ICD-O-3)"
-                value={formData.seerRegistry.primaryCancerSite}
-                onChange={(v) => updateSeerRegistry('primaryCancerSite', v)}
-                placeholder="e.g., C34.9 (Lung)"
-              />
-              <SelectInput
-                label="SEER Summary Stage"
-                value={formData.seerRegistry.seerSummaryStage}
-                onChange={(v) => updateSeerRegistry('seerSummaryStage', v)}
-                options={SEER_STAGE_OPTIONS}
-              />
-              <TextInput
-                label="Histologic Type"
-                value={formData.seerRegistry.histologicType}
-                onChange={(v) => updateSeerRegistry('histologicType', v)}
-                placeholder="e.g., Adenocarcinoma"
-              />
-              <SelectInput
-                label="Histologic Grade"
-                value={formData.seerRegistry.histologicGrade}
-                onChange={(v) => updateSeerRegistry('histologicGrade', v)}
-                options={HISTOLOGIC_GRADE_OPTIONS}
-              />
+            {/* Clinical Classification */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <TextInput
                 label="Tumor Size (mm)"
                 value={formData.seerRegistry.tumorSize}
@@ -816,22 +763,16 @@ export function ProviderView() {
                 onChange={(v) => updateSeerRegistry('lymphNodesInvolved', v)}
                 placeholder="e.g., 0, 2, 5+"
               />
+              <SelectInput
+                label="Histologic Grade"
+                value={formData.seerRegistry.histologicGrade}
+                onChange={(v) => updateSeerRegistry('histologicGrade', v)}
+                options={HISTOLOGIC_GRADE_OPTIONS}
+              />
             </div>
 
-            {/* Demographics */}
+            {/* Social & Geographic */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <TextInput
-                label="Age at Diagnosis"
-                value={formData.seerRegistry.ageAtDiagnosis}
-                onChange={(v) => updateSeerRegistry('ageAtDiagnosis', v)}
-                placeholder="e.g., 62"
-              />
-              <SelectInput
-                label="Race/Ethnicity"
-                value={formData.seerRegistry.raceEthnicity}
-                onChange={(v) => updateSeerRegistry('raceEthnicity', v)}
-                options={RACE_ETHNICITY_OPTIONS}
-              />
               <SelectInput
                 label="Marital Status"
                 value={formData.seerRegistry.maritalStatus}
@@ -844,10 +785,6 @@ export function ProviderView() {
                 onChange={(v) => updateSeerRegistry('yearOfDiagnosis', v)}
                 placeholder="e.g., 2023"
               />
-            </div>
-
-            {/* Geographic & Social */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <TextInput
                 label="County of Residence"
                 value={formData.seerRegistry.countyOfResidence}
@@ -860,6 +797,10 @@ export function ProviderView() {
                 onChange={(v) => updateSeerRegistry('urbanicity', v)}
                 options={URBANICITY_OPTIONS}
               />
+            </div>
+
+            {/* Behavioral */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SelectInput
                 label="Smoking History"
                 value={formData.seerRegistry.smokingHistory}
