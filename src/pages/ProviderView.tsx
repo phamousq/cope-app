@@ -96,6 +96,25 @@ const LIKELIHOOD_OPTIONS: LikelihoodOfCure[] = [
   'Likely (>75%)',
 ];
 
+// Helper to convert numeric percentage to LikelihoodOfCure
+function numericToLikelihood(value: number): LikelihoodOfCure | null {
+  if (value === 0) return null;
+  if (value < 1) return 'Very unlikely (<1%)';
+  if (value < 25) return 'Unlikely (<25%)';
+  if (value <= 75) return 'Possible (25-75%)';
+  return 'Likely (>75%)';
+}
+
+// Helper to convert LikelihoodOfCure to numeric percentage (midpoint of range)
+function likelihoodToNumeric(likelihood: LikelihoodOfCure | null): number {
+  if (!likelihood) return 0;
+  if (likelihood === 'Very unlikely (<1%)') return 0.5;
+  if (likelihood === 'Unlikely (<25%)') return 12.5;
+  if (likelihood === 'Possible (25-75%)') return 50;
+  if (likelihood === 'Likely (>75%)') return 87.5;
+  return 0;
+}
+
 const initialFormData: ProviderFormData = {
   demographics: {
     sex: 'Male',
@@ -524,6 +543,34 @@ export function ProviderView() {
     }));
   }, []);
 
+  const updateSurvivalEstimate = useCallback((timeframe: string, likelihood: LikelihoodOfCure | null) => {
+    const numericValue = likelihoodToNumeric(likelihood);
+    setFormData((prev) => {
+      const currentSources = prev.prognosisData.survivalSources;
+      const updatedSources = [...currentSources];
+      if (updatedSources.length === 0) {
+        // Create default source if none exists
+        updatedSources.push({
+          source: 'Provider Estimate',
+          likelihoodOfCure: likelihood || 'Possible (25-75%)',
+          sixMonth: 0,
+          oneYear: 0,
+          twoYear: 0,
+          fiveYear: 0,
+        });
+      }
+      updatedSources[0] = {
+        ...updatedSources[0],
+        [timeframe]: numericValue,
+        likelihoodOfCure: likelihood || updatedSources[0].likelihoodOfCure,
+      };
+      return {
+        ...prev,
+        prognosisData: { ...prev.prognosisData, survivalSources: updatedSources },
+      };
+    });
+  }, []);
+
   const survivalSources = formData.prognosisData.survivalSources.length > 0
     ? formData.prognosisData.survivalSources
     : [{ source: 'Provider Estimate', likelihoodOfCure: 'Possible (25-75%)', sixMonth: 0, oneYear: 0, twoYear: 0, fiveYear: 0 }];
@@ -812,14 +859,12 @@ export function ProviderView() {
           <LikelihoodInputs
             label="Provider Estimate — Likelihood of Survival"
             values={{
-              sixMonth: survivalSources[0]?.sixMonth ? 'Possible (25-75%)' : null,
-              oneYear: survivalSources[0]?.oneYear ? 'Possible (25-75%)' : null,
-              twoYear: survivalSources[0]?.twoYear ? 'Possible (25-75%)' : null,
-              fiveYear: survivalSources[0]?.fiveYear ? 'Possible (25-75%)' : null,
+              sixMonth: numericToLikelihood(survivalSources[0]?.sixMonth || 0),
+              oneYear: numericToLikelihood(survivalSources[0]?.oneYear || 0),
+              twoYear: numericToLikelihood(survivalSources[0]?.twoYear || 0),
+              fiveYear: numericToLikelihood(survivalSources[0]?.fiveYear || 0),
             }}
-            onChange={() => {
-              // Provider estimates are manual — could be expanded
-            }}
+            onChange={updateSurvivalEstimate}
           />
           <div className="mt-4">
             <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
