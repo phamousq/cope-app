@@ -11,6 +11,7 @@ import type {
   LikelihoodOfCure,
 } from '../types';
 import { useAIAnalysis } from '@/hooks/useAIAnalysis';
+import { useProviderData, type ProviderFormData as ProviderFormDataType } from '@/contexts/ProviderDataContext';
 
 // TNM Staging options (for hover tooltips)
 const T_OPTIONS = ['TX', 'T0', 'Tis', 'T1', 'T1a', 'T1b', 'T2', 'T3', 'T4', 'T4a', 'T4b'];
@@ -149,7 +150,7 @@ const initialFormData: ProviderFormData = {
 };
 
 interface JsonInspectorProps {
-  data: ProviderFormData;
+  data: ProviderFormDataType;
 }
 
 function JsonInspector({ data }: JsonInspectorProps) {
@@ -470,13 +471,7 @@ function computeOverallStage(t: string, n: string, m: string): string {
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 
 export function ProviderView() {
-  const [formData, setFormData] = useState<ProviderFormData>(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return {
-      ...initialFormData,
-      demographics: { ...initialFormData.demographics, dateOfDiagnosis: today },
-    };
-  });
+  const { formData, setFormData } = useProviderData();
   const { analysis, isLoading, error, analyze, clearAnalysis } = useAIAnalysis({
     apiKey: OPENROUTER_API_KEY,
     model: 'openai/gpt-oss-120b:free',
@@ -986,7 +981,7 @@ export function ProviderView() {
       </main>
 
       {/* JSONL Inspector */}
-      <JsonInspector data={formData} />
+      <JsonInspector data={formData as ProviderFormDataType} />
     </div>
   );
 }

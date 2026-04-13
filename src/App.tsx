@@ -4,6 +4,7 @@ import { NavBar } from '@/components/NavBar/NavBar';
 import { Landing, PatientView, PatientFormPage, ProviderView, VoiceInput, Backend } from '@/pages';
 import { TranscriptContext, getGlobalTranscript, setGlobalTranscript } from '@/contexts/TranscriptContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ProviderDataProvider } from '@/contexts/ProviderDataContext';
 
 function App() {
   const [transcript, setTranscript] = useState<string>(getGlobalTranscript());
@@ -18,6 +19,7 @@ function App() {
       <TranscriptContext.Provider value={transcript}>
         <BrowserRouter>
           <div className="min-h-screen bg-gradient-to-br from-orange-100 via-amber-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+        <ProviderDataProvider>
             <NavBar />
             <Routes>
               <Route path="/" element={<Landing />} />
@@ -27,6 +29,7 @@ function App() {
               <Route path="/voice" element={<VoiceInput onTranscriptChange={updateTranscript} />} />
               <Route path="/backend" element={<Backend />} />
             </Routes>
+            </ProviderDataProvider>
           </div>
         </BrowserRouter>
       </TranscriptContext.Provider>
