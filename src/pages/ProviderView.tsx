@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ChevronDown, ChevronUp, ClipboardList, Brain, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, ClipboardList, Brain, Loader2, AlertCircle, ExternalLink, HelpCircle } from 'lucide-react';
 import type {
   Demographics,
   CancerDetails,
@@ -12,10 +12,10 @@ import type {
 } from '../types';
 import { useAIAnalysis } from '@/hooks/useAIAnalysis';
 
-// TNM Staging options
-const T_STAGE_OPTIONS = ['', 'TX', 'T0', 'Tis', 'T1', 'T1a', 'T1b', 'T2', 'T3', 'T4', 'T4a', 'T4b'];
-const N_STAGE_OPTIONS = ['', 'NX', 'N0', 'N1', 'N1a', 'N1b', 'N1c', 'N2', 'N2a', 'N2b', 'N3'];
-const M_STAGE_OPTIONS = ['', 'MX', 'M0', 'M1', 'M1a', 'M1b', 'M1c'];
+// TNM Staging options (for hover tooltips)
+const T_OPTIONS = ['TX', 'T0', 'Tis', 'T1', 'T1a', 'T1b', 'T2', 'T3', 'T4', 'T4a', 'T4b'];
+const N_OPTIONS = ['NX', 'N0', 'N1', 'N1a', 'N1b', 'N1c', 'N2', 'N2a', 'N2b', 'N3'];
+const M_OPTIONS = ['MX', 'M0', 'M1', 'M1a', 'M1b', 'M1c'];
 
 // Patient-specific factors (standardized scales - keep as selects)
 const ECOG_OPTIONS = ['', '0 - Fully active', '1 - Restricted strenuous activity', '2 - Ambulatory but unable to work', '3 - Limited self-care', '4 - Completely disabled'];
@@ -28,34 +28,23 @@ const MARITAL_STATUS_OPTIONS = ['', 'Single (never married)', 'Married', 'Separa
 const SMOKING_HISTORY_OPTIONS = ['', 'Never smoker', 'Former smoker', 'Current smoker', 'Unknown'];
 const URBANICITY_OPTIONS = ['', '1 - Metro counties (pop ≥1 million)', '2 - Metro counties (pop <1 million)', '3 - Urban counties', '4 - Less urban counties', '5 - Completely rural counties', 'Unknown'];
 
-// Age group options
-const AGE_GROUP_OPTIONS = ['', '18-34', '35-49', '50-59', '60-69', '70-79', '80-90'] as const;
-
-// Overall stage options (computed from TNM or manual)
-const OVERALL_STAGE_OPTIONS = ['', 'Stage 1 - Localized', 'Stage 2 - Localized', 'Stage 3 - Regional', 'Stage 4 - Metastatic'] as const;
-
 interface SeerRegistryData {
   histologicGrade: string;
   maritalStatus: string;
   countyOfResidence: string;
   urbanicity: string;
-  tumorSize: string;
-  lymphNodesInvolved: string;
   smokingHistory: string;
   yearOfDiagnosis: string;
 }
 
 interface ClinicalMolecularData {
-  // Molecular & Genomic Markers (free text)
   molecularGenomicMarkers: string;
-  // Biochemical/Tumor Markers
   nlr: string;
   cea: string;
   ca125: string;
   psa: string;
   psaDoublingTime: string;
   ldh: string;
-  // Treatment Response (free text)
   treatmentResponse: string;
 }
 
@@ -69,14 +58,17 @@ interface ProviderFormData {
     ecogStatus: string;
     charlsonComorbidityIndex: string;
     mgps: string;
-    physiologicAge: string;
   };
   seerRegistry: SeerRegistryData;
-  // TNM staging (moved from clinicalMolecular for logical grouping)
   tStage: string;
   nStage: string;
   mStage: string;
-  overallStage: string; // manual override or computed from TNM
+  // Cancer diagnosis row
+  cancerLocation: string;
+  cancerSize: string;
+  lymphNodes: string;
+  // Numeric age (separate from Demographics.ageGroup for raw number input)
+  age: string;
 }
 
 const SEX_OPTIONS = ['Male', 'Female', 'Other'] as const;
@@ -137,23 +129,22 @@ const initialFormData: ProviderFormData = {
     ecogStatus: '',
     charlsonComorbidityIndex: '',
     mgps: '',
-    physiologicAge: '',
   },
   seerRegistry: {
     histologicGrade: '',
     maritalStatus: '',
     countyOfResidence: '',
     urbanicity: '',
-    tumorSize: '',
-    lymphNodesInvolved: '',
     smokingHistory: '',
     yearOfDiagnosis: '',
   },
-  // TNM
   tStage: '',
   nStage: '',
   mStage: '',
-  overallStage: '',
+  cancerLocation: '',
+  cancerSize: '',
+  lymphNodes: '',
+  age: '',
 };
 
 interface JsonInspectorProps {
@@ -195,14 +186,28 @@ interface SelectInputProps {
   onChange: (value: string) => void;
   options: readonly string[];
   className?: string;
+  helpUrl?: string;
 }
 
-function SelectInput({ label, value, onChange, options, className = '' }: SelectInputProps) {
+function SelectInput({ label, value, onChange, options, className = '', helpUrl }: SelectInputProps) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
-        {label}
-      </label>
+      <div className="flex items-center gap-1 mb-1">
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+          {label}
+        </label>
+        {helpUrl && (
+          <a
+            href={helpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            title="View reference"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+      </div>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -225,21 +230,80 @@ interface TextInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  type?: string;
+  helpUrl?: string;
+  tooltip?: string;
 }
 
-function TextInput({ label, value, onChange, placeholder, className = '' }: TextInputProps) {
+function TextInput({ label, value, onChange, placeholder, className = '', type = 'text', helpUrl, tooltip }: TextInputProps) {
   return (
     <div className={className}>
-      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
-        {label}
-      </label>
+      <div className="flex items-center gap-1 mb-1">
+        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+          {label}
+        </label>
+        {helpUrl && (
+          <a
+            href={helpUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+            title="View reference"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
+        {tooltip && (
+          <span className="group relative">
+            <HelpCircle className="w-3 h-3 text-slate-400" />
+            <div className="hidden group-hover:block absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-slate-900 text-slate-100 text-xs rounded whitespace-nowrap">
+              {tooltip}
+            </div>
+          </span>
+        )}
+      </div>
       <input
-        type="text"
+        type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
       />
+    </div>
+  );
+}
+
+interface TNMInputProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  className?: string;
+}
+
+function TNMInput({ label, value, onChange, options, className = '' }: TNMInputProps) {
+  return (
+    <div className={className}>
+      <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+        {label}
+      </label>
+      <div className="relative group">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value.toUpperCase())}
+          placeholder="T1, T2, N0..."
+          className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
+        />
+        <div className="hidden group-hover:block absolute z-10 top-full left-0 mt-1 px-3 py-2 bg-slate-900 text-slate-100 text-xs rounded-lg shadow-lg min-w-[180px]">
+          <p className="font-medium text-slate-300 mb-1">Valid options:</p>
+          <div className="flex flex-wrap gap-1">
+            {options.map((opt) => (
+              <span key={opt} className="px-1.5 py-0.5 bg-slate-700 rounded text-slate-200 font-mono">{opt}</span>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -337,6 +401,17 @@ function SectionCard({ title, children }: SectionCardProps) {
   );
 }
 
+// Compute overall stage from TNM (for AI analysis, not shown as a field)
+function computeOverallStage(t: string, n: string, m: string): string {
+  if (!t && !n && !m) return '';
+  if (m && m !== 'M0' && m !== 'MX') return 'Stage 4 - Metastatic';
+  if (n && (n === 'N2' || n === 'N3')) return 'Stage 3 - Regional';
+  if (t && (t === 'T3' || t === 'T4')) return 'Stage 3 - Regional';
+  if (t && (t === 'T1b' || t === 'T2')) return 'Stage 2 - Localized';
+  if (t && t.startsWith('T1')) return 'Stage 1 - Localized';
+  return '';
+}
+
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY || '';
 
 export function ProviderView() {
@@ -408,36 +483,6 @@ export function ProviderView() {
     }));
   }, []);
 
-  // Compute overall stage from TNM
-  const computeOverallStage = (t: string, n: string, m: string): string => {
-    if (!t && !n && !m) return '';
-    if (m && m !== 'M0' && m !== 'MX') return 'Stage 4 - Metastatic';
-    if (n && (n === 'N2' || n === 'N3')) return 'Stage 3 - Regional';
-    if (t && (t === 'T3' || t === 'T4')) return 'Stage 3 - Regional';
-    if (t && (t === 'T1b' || t === 'T2')) return 'Stage 2 - Localized';
-    if (t && t.startsWith('T1')) return 'Stage 1 - Localized';
-    return '';
-  };
-
-  // Auto-compute overall stage when TNM changes (unless manually set)
-  const handleTNMChange = (key: 'tStage' | 'nStage' | 'mStage', value: string) => {
-    setFormData((prev) => {
-      const newT = key === 'tStage' ? value : prev.tStage;
-      const newN = key === 'nStage' ? value : prev.nStage;
-      const newM = key === 'mStage' ? value : prev.mStage;
-      const computed = computeOverallStage(newT, newN, newM);
-      // Only auto-update overall stage if it matches computed (user hasn't manually set something else)
-      const newOverall = prev.overallStage === computeOverallStage(prev.tStage, prev.nStage, prev.mStage) || !prev.overallStage
-        ? computed
-        : prev.overallStage;
-      return {
-        ...prev,
-        [key]: value,
-        overallStage: newOverall,
-      };
-    });
-  };
-
   const survivalSources = formData.prognosisData.survivalSources.length > 0
     ? formData.prognosisData.survivalSources
     : [{ source: 'Provider Estimate', likelihoodOfCure: 'Possible (25-75%)', sixMonth: 0, oneYear: 0, twoYear: 0, fiveYear: 0 }];
@@ -469,125 +514,132 @@ export function ProviderView() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* 1. PATIENT DEMOGRAPHICS - age, sex, ethnicity, performance status, comorbidities */}
+        {/* 1. PATIENT DEMOGRAPHICS */}
         <SectionCard title="Patient Demographics">
           <div className="space-y-4">
-            {/* Basic demographics - 4 columns */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Basic demographics - Sex, Age, Ethnicity */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <SelectInput
-                label="Sex at Birth"
+                label="Sex"
                 value={formData.demographics.sex}
                 onChange={(v) => updateDemographics('sex', v as Demographics['sex'])}
                 options={SEX_OPTIONS}
               />
-              <SelectInput
-                label="Age Group"
-                value={formData.demographics.ageGroup}
-                onChange={(v) => updateDemographics('ageGroup', v as Demographics['ageGroup'])}
-                options={AGE_GROUP_OPTIONS}
-              />
+              <div className="flex flex-col">
+                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  Age
+                </label>
+                <input
+                  type="number"
+                  value={formData.demographics.ageGroup && !formData.demographics.ageGroup.includes('-') ? formData.demographics.ageGroup : ''}
+                  onChange={(e) => {
+                    const age = parseInt(e.target.value);
+                    if (isNaN(age)) { updateDemographics('ageGroup', ''); return; }
+                    if (age < 35) updateDemographics('ageGroup', '18-34');
+                    else if (age < 50) updateDemographics('ageGroup', '35-49');
+                    else if (age < 60) updateDemographics('ageGroup', '50-59');
+                    else if (age < 70) updateDemographics('ageGroup', '60-69');
+                    else if (age < 80) updateDemographics('ageGroup', '70-79');
+                    else updateDemographics('ageGroup', '80-90');
+                  }}
+                  placeholder="e.g., 55"
+                  min="18"
+                  max="120"
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
+                />
+              </div>
               <TextInput
                 label="Ethnicity / Race"
                 value={formData.demographics.ethnicity}
                 onChange={(v) => updateDemographics('ethnicity', v)}
                 placeholder="e.g., Non-Hispanic White"
               />
-              <TextInput
-                label="Physiologic Age"
-                value={formData.patientFactors.physiologicAge}
-                onChange={(v) => updatePatientFactors('physiologicAge', v)}
-                placeholder="e.g., 65"
-              />
             </div>
 
-            {/* Performance status & comorbidities - 4 columns */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Performance status & comorbidities with links */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <SelectInput
                 label="ECOG Performance Status"
                 value={formData.patientFactors.ecogStatus}
                 onChange={(v) => updatePatientFactors('ecogStatus', v)}
                 options={ECOG_OPTIONS}
+                helpUrl="https://www.ecog.org/general/contents.html"
               />
               <SelectInput
                 label="Charlson Comorbidity Index"
                 value={formData.patientFactors.charlsonComorbidityIndex}
                 onChange={(v) => updatePatientFactors('charlsonComorbidityIndex', v)}
                 options={CCI_OPTIONS}
+                helpUrl="https://www.mdcalc.com/calc/3941/charlson-comorbidity-index"
               />
               <SelectInput
                 label="mGPS (Glasgow Score)"
                 value={formData.patientFactors.mgps}
                 onChange={(v) => updatePatientFactors('mgps', v)}
                 options={MGPS_OPTIONS}
-              />
-              <TextInput
-                label="Physiologic Age"
-                value={formData.patientFactors.physiologicAge}
-                onChange={(v) => updatePatientFactors('physiologicAge', v)}
-                placeholder="e.g., 65"
+                helpUrl="https://www.mdcalc.com/m gps-modified-glasgow-prognostic-score"
               />
             </div>
           </div>
         </SectionCard>
 
-        {/* 2. CANCER DIAGNOSIS - cancer type, TNM staging, histology, metastatic spread */}
+        {/* 2. CANCER DIAGNOSIS */}
         <SectionCard title="Cancer Diagnosis">
           <div className="space-y-4">
-            {/* Primary cancer type */}
+            {/* Primary cancer type = histology */}
             <TextInput
-              label="Primary Cancer Type"
-              value={formData.cancerDetails.typeOfCancer}
-              onChange={(v) => updateCancerDetails('typeOfCancer', v)}
-              placeholder="e.g., Non-Small Cell Lung Cancer"
+              label="Primary Cancer Type / Histology"
+              value={formData.cancerDetails.scientificName || formData.cancerDetails.typeOfCancer}
+              onChange={(v) => {
+                updateCancerDetails('typeOfCancer', v);
+                updateCancerDetails('scientificName', v);
+              }}
+              placeholder="e.g., Non-Small Cell Lung Cancer, Adenocarcinoma"
               className="sm:col-span-2"
+              tooltip="Enter the primary cancer type or histology. This is used as the cancer type for prognosis estimation."
             />
 
-            {/* TNM Staging - 4 columns */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <SelectInput
+            {/* TNM Staging - free text inputs with hover showing options */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <TNMInput
                 label="T - Primary Tumor"
                 value={formData.tStage}
-                onChange={(v) => handleTNMChange('tStage', v)}
-                options={T_STAGE_OPTIONS}
+                onChange={(v) => setFormData((prev) => ({ ...prev, tStage: v }))}
+                options={T_OPTIONS}
               />
-              <SelectInput
+              <TNMInput
                 label="N - Regional Nodes"
                 value={formData.nStage}
-                onChange={(v) => handleTNMChange('nStage', v)}
-                options={N_STAGE_OPTIONS}
+                onChange={(v) => setFormData((prev) => ({ ...prev, nStage: v }))}
+                options={N_OPTIONS}
               />
-              <SelectInput
+              <TNMInput
                 label="M - Distant Metastasis"
                 value={formData.mStage}
-                onChange={(v) => handleTNMChange('mStage', v)}
-                options={M_STAGE_OPTIONS}
-              />
-              <SelectInput
-                label="Overall Stage (AJCC)"
-                value={formData.overallStage}
-                onChange={(v) => setFormData((prev) => ({ ...prev, overallStage: v }))}
-                options={OVERALL_STAGE_OPTIONS}
+                onChange={(v) => setFormData((prev) => ({ ...prev, mStage: v }))}
+                options={M_OPTIONS}
               />
             </div>
 
-            {/* Histology and spread - 3 columns */}
+            {/* Histology row: location (= whereSpread), size, lymph nodes */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <TextInput
-                label="Histology / Scientific Name"
-                value={formData.cancerDetails.scientificName}
-                onChange={(v) => updateCancerDetails('scientificName', v)}
-                placeholder="e.g., Adenocarcinoma"
+                label="Primary Site / Location"
+                value={formData.cancerLocation}
+                onChange={(v) => setFormData((prev) => ({ ...prev, cancerLocation: v }))}
+                placeholder="e.g., Right upper lobe"
               />
               <TextInput
-                label="Tumor Size (mm)"
-                value={formData.seerRegistry.tumorSize}
-                onChange={(v) => updateSeerRegistry('tumorSize', v)}
+                label="Size (mm)"
+                value={formData.cancerSize}
+                onChange={(v) => setFormData((prev) => ({ ...prev, cancerSize: v }))}
                 placeholder="e.g., 45"
+                type="number"
               />
               <TextInput
                 label="Lymph Nodes Involved"
-                value={formData.seerRegistry.lymphNodesInvolved}
-                onChange={(v) => updateSeerRegistry('lymphNodesInvolved', v)}
+                value={formData.lymphNodes}
+                onChange={(v) => setFormData((prev) => ({ ...prev, lymphNodes: v }))}
                 placeholder="e.g., 0, 2, 5+"
               />
             </div>
@@ -626,6 +678,7 @@ export function ProviderView() {
               value={formData.clinicalMolecular.nlr}
               onChange={(v) => updateClinicalMolecular('nlr', v)}
               placeholder="e.g., 3.5"
+              helpUrl="https://www.mdcalc.com/neutrophil-lymphocyte-ratio-nlr"
             />
             <TextInput
               label="CEA (ng/mL)"
@@ -745,9 +798,10 @@ export function ProviderView() {
                     if (analysis) {
                       clearAnalysis();
                     } else {
+                      const computedStage = computeOverallStage(formData.tStage, formData.nStage, formData.mStage);
                       analyze({
                         cancerType: formData.cancerDetails.typeOfCancer,
-                        cancerStage: formData.overallStage || 'Not specified',
+                        cancerStage: computedStage || 'Not specified',
                         treatmentGoals: formData.treatmentPlan.goals,
                         treatments: formData.treatmentPlan.treatments,
                         tnmStage: formData.tStage || formData.nStage || formData.mStage
@@ -814,7 +868,7 @@ export function ProviderView() {
           </div>
         </SectionCard>
 
-        {/* 8. REGISTRY & POPULATION DATA - SEER-style data */}
+        {/* 8. REGISTRY & POPULATION DATA */}
         <SectionCard title="Registry & Population Data">
           <div className="space-y-4">
             {/* Social & Geographic */}
@@ -830,6 +884,7 @@ export function ProviderView() {
                 value={formData.seerRegistry.yearOfDiagnosis}
                 onChange={(v) => updateSeerRegistry('yearOfDiagnosis', v)}
                 placeholder="e.g., 2023"
+                type="number"
               />
               <TextInput
                 label="County of Residence"
@@ -845,7 +900,7 @@ export function ProviderView() {
               />
             </div>
 
-            {/* Histologic grade */}
+            {/* Histologic grade & smoking */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <SelectInput
                 label="Histologic Grade"
