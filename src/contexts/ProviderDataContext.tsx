@@ -1,19 +1,10 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import type { Demographics, CancerDetails, TreatmentPlan, PrognosisData } from '@/types';
 
 export interface ProviderFormData {
   age: string;
-  demographics: {
-    sex: string;
-    ageGroup: string;
-    ethnicity: string;
-    dateOfDiagnosis: string;
-  };
-  cancerDetails: {
-    typeOfCancer: string;
-    scientificName: string;
-    whereSpread: string;
-    cancerStage: string;
-  };
+  demographics: Demographics & { dateOfDiagnosis: string };
+  cancerDetails: CancerDetails;
   cancerLocation: string;
   cancerSize: string;
   tStage: string;
@@ -30,11 +21,7 @@ export interface ProviderFormData {
     ldh: string;
     treatmentResponse: string;
   };
-  treatmentPlan: {
-    goals: string[];
-    treatments: string[];
-    response: string;
-  };
+  treatmentPlan: TreatmentPlan & { response: string };
   patientFactors: {
     ecogStatus: string;
     charlsonComorbidityIndex: string;
@@ -49,17 +36,7 @@ export interface ProviderFormData {
     histologicGrade: string;
     smokingHistory: string;
   };
-  prognosisData: {
-    survivalSources: Array<{
-      source: string;
-      likelihoodOfCure: string;
-      sixMonth: number;
-      oneYear: number;
-      twoYear: number;
-      fiveYear: number;
-    }>;
-    additionalContext: string;
-  };
+  prognosisData: PrognosisData;
 }
 
 const STORAGE_KEY = 'cope_provider_form_data';
@@ -67,8 +44,8 @@ const STORAGE_KEY = 'cope_provider_form_data';
 const defaultFormData: ProviderFormData = {
   age: '',
   demographics: {
-    sex: '',
-    ageGroup: '',
+    sex: 'Male',
+    ageGroup: '50-59',
     ethnicity: '',
     dateOfDiagnosis: '',
   },
@@ -76,7 +53,7 @@ const defaultFormData: ProviderFormData = {
     typeOfCancer: '',
     scientificName: '',
     whereSpread: '',
-    cancerStage: '',
+    cancerStage: 'Stage 1 - Localized',
   },
   cancerLocation: '',
   cancerSize: '',
@@ -95,8 +72,8 @@ const defaultFormData: ProviderFormData = {
     treatmentResponse: '',
   },
   treatmentPlan: {
-    goals: [] as string[],
-    treatments: [] as string[],
+    goals: [],
+    treatments: [],
     response: '',
   },
   patientFactors: {
@@ -143,14 +120,10 @@ export function ProviderDataProvider({ children }: { children: ReactNode }) {
           demographics: { ...defaultFormData.demographics, ...parsed.demographics },
           cancerDetails: { ...defaultFormData.cancerDetails, ...parsed.cancerDetails },
           clinicalMolecular: { ...defaultFormData.clinicalMolecular, ...parsed.clinicalMolecular },
-          treatmentPlan: parsed.treatmentPlan
-            ? { ...defaultFormData.treatmentPlan, ...parsed.treatmentPlan }
-            : defaultFormData.treatmentPlan,
+          treatmentPlan: { ...defaultFormData.treatmentPlan, ...parsed.treatmentPlan },
           patientFactors: { ...defaultFormData.patientFactors, ...parsed.patientFactors },
           seerRegistry: { ...defaultFormData.seerRegistry, ...parsed.seerRegistry },
-          prognosisData: parsed.prognosisData
-            ? { ...defaultFormData.prognosisData, ...parsed.prognosisData }
-            : defaultFormData.prognosisData,
+          prognosisData: { ...defaultFormData.prognosisData, ...parsed.prognosisData },
         };
       } catch {
         return defaultFormData;

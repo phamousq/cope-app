@@ -7,31 +7,9 @@ import { PrognosisSection } from './PrognosisSection';
 import { Button } from '@/components/ui/Button';
 import { FileDown, Loader2, AlertCircle, Clipboard, Check } from 'lucide-react';
 import { pdf } from '@react-pdf/renderer';
-import type { Demographics, CancerDetails, TreatmentPlan, PrognosisData, LikelihoodExpectations, SurvivalWithoutTreatment } from '@/types';
+import type { LikelihoodExpectations, SurvivalWithoutTreatment } from '@/types';
 import { COPEDocument } from '@/components/PDF/COPEDocument';
-
-const initialDemographics: Demographics = {
-  sex: 'Male',
-  ageGroup: '50-59',
-  ethnicity: '',
-};
-
-const initialCancerDetails: CancerDetails = {
-  typeOfCancer: '',
-  cancerStage: 'Stage 1 - Localized',
-  scientificName: '',
-  whereSpread: '',
-};
-
-const initialTreatmentPlan: TreatmentPlan = {
-  goals: [],
-  treatments: [],
-};
-
-const initialPrognosisData: PrognosisData = {
-  survivalSources: [],
-  additionalContext: '',
-};
+import { useProviderData } from '@/contexts/ProviderDataContext';
 
 const initialLikelihoodExpectations: LikelihoodExpectations = {
   sixMonth: null,
@@ -52,42 +30,49 @@ interface PatientFormProps {
 }
 
 export function PatientForm({ onComplete }: PatientFormProps) {
-  const [demographics, setDemographics] = useState<Demographics>(initialDemographics);
-  const [cancerDetails, setCancerDetails] = useState<CancerDetails>(initialCancerDetails);
-  const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>(initialTreatmentPlan);
-  const [prognosisData, setPrognosisData] = useState<PrognosisData>(initialPrognosisData);
+  const { formData, setFormData } = useProviderData();
   const [likelihoodExpectations, setLikelihoodExpectations] = useState<LikelihoodExpectations>(initialLikelihoodExpectations);
   const [survivalWithoutTreatment, setSurvivalWithoutTreatment] = useState<SurvivalWithoutTreatment>(initialSurvivalWithoutTreatment);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasSurvivalData = prognosisData.survivalSources.length > 0;
+  const hasSurvivalData = formData.prognosisData.survivalSources.length > 0;
 
   const handleGeneratePDF = async () => {
     setError(null);
     setIsGenerating(true);
 
     try {
-      const doc = <COPEDocument {...{ demographics, cancerDetails, treatmentPlan, likelihoodExpectations, survivalWithoutTreatment, prognosisData }} />;
+      const doc = <COPEDocument {...{
+        demographics: formData.demographics,
+        cancerDetails: formData.cancerDetails,
+        treatmentPlan: formData.treatmentPlan,
+        likelihoodExpectations,
+        survivalWithoutTreatment,
+        prognosisData: formData.prognosisData,
+      }} />;
       const blob = await pdf(doc).toBlob();
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `COPE-Report-${cancerDetails.typeOfCancer || 'Patient'}.pdf`;
+      link.download = `COPE-Report-${formData.cancerDetails.typeOfCancer || 'Patient'}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
       // Clear form after successful generation
-      setDemographics(initialDemographics);
-      setCancerDetails(initialCancerDetails);
-      setTreatmentPlan(initialTreatmentPlan);
+      setFormData({
+        ...formData,
+        demographics: { ...formData.demographics, sex: 'Male', ageGroup: '50-59', ethnicity: '' },
+        cancerDetails: { ...formData.cancerDetails, typeOfCancer: '', cancerStage: 'Stage 1 - Localized', scientificName: '', whereSpread: '' },
+        treatmentPlan: { ...formData.treatmentPlan, goals: [], treatments: [] },
+        prognosisData: { ...formData.prognosisData, survivalSources: [], additionalContext: '' },
+      });
       setLikelihoodExpectations(initialLikelihoodExpectations);
       setSurvivalWithoutTreatment(initialSurvivalWithoutTreatment);
-      setPrognosisData(initialPrognosisData);
       onComplete();
     } catch (err) {
       console.error('Failed to generate PDF:', err);
@@ -101,17 +86,18 @@ export function PatientForm({ onComplete }: PatientFormProps) {
 
   const generatePlainText = () => {
     const lines: string[] = [];
+    const { demographics, cancerDetails, treatmentPlan, prognosisData } = formData;
 
     lines.push('Demographics');
-    lines.push(`Sex: ${demographics.sex}`);
-    lines.push(`Age: ${demographics.ageGroup}`);
+    lines.push(`Sex: ${demographics.sex || 'Not specified'}`);
+    lines.push(`Age: ${demographics.ageGroup || 'Not specified'}`);
     lines.push(`Ethnicity: ${demographics.ethnicity || 'Not specified'}`);
     lines.push('');
 
     // Diagnosis
     lines.push('Diagnosis');
     lines.push(`Type of Cancer (where it started): ${cancerDetails.typeOfCancer || 'Not specified'}`);
-    lines.push(`Cancer Stage: ${cancerDetails.cancerStage}`);
+    lines.push(`Cancer Stage: ${cancerDetails.cancerStage || 'Not specified'}`);
     lines.push(`Scientific Name for Cancer Cell Type: ${cancerDetails.scientificName || 'Not specified'}`);
     lines.push(`Where It Has Spread: ${cancerDetails.whereSpread || 'Not specified'}`);
     lines.push('');
@@ -173,9 +159,18 @@ export function PatientForm({ onComplete }: PatientFormProps) {
 
   return (
     <div className="space-y-6">
-      <DemographicsSection data={demographics} onChange={setDemographics} />
-      <DiagnosisSection data={cancerDetails} onChange={setCancerDetails} />
-      <TreatmentPlanSection data={treatmentPlan} onChange={setTreatmentPlan} />
+      <DemographicsSection
+        data={formData.demographics}
+        onChange={(d) => setFormData({ ...formData, demographics: { ...formData.demographics, ...d } })}
+      />
+      <DiagnosisSection
+        data={formData.cancerDetails}
+        onChange={(d) => setFormData({ ...formData, cancerDetails: { ...formData.cancerDetails, ...d } })}
+      />
+      <TreatmentPlanSection
+        data={formData.treatmentPlan}
+        onChange={(d) => setFormData({ ...formData, treatmentPlan: { ...formData.treatmentPlan, ...d } })}
+      />
       <LikelihoodExpectationsSection
         likelihoodData={likelihoodExpectations}
         survivalWithoutTreatmentData={survivalWithoutTreatment}
@@ -183,11 +178,11 @@ export function PatientForm({ onComplete }: PatientFormProps) {
         onSurvivalWithoutTreatmentChange={setSurvivalWithoutTreatment}
       />
       <PrognosisSection
-        data={prognosisData}
-        demographics={demographics}
-        cancerDetails={cancerDetails}
+        data={formData.prognosisData}
+        demographics={formData.demographics}
+        cancerDetails={formData.cancerDetails}
         clipboardText={generatePlainText()}
-        onChange={setPrognosisData}
+        onChange={(d) => setFormData({ ...formData, prognosisData: { ...formData.prognosisData, ...d } })}
       />
 
       {error && (
