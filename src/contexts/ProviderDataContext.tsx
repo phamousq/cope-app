@@ -135,7 +135,23 @@ export function ProviderDataProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Deep merge with defaults to handle schema changes
+        return {
+          ...defaultFormData,
+          ...parsed,
+          demographics: { ...defaultFormData.demographics, ...parsed.demographics },
+          cancerDetails: { ...defaultFormData.cancerDetails, ...parsed.cancerDetails },
+          clinicalMolecular: { ...defaultFormData.clinicalMolecular, ...parsed.clinicalMolecular },
+          treatmentPlan: parsed.treatmentPlan
+            ? { ...defaultFormData.treatmentPlan, ...parsed.treatmentPlan }
+            : defaultFormData.treatmentPlan,
+          patientFactors: { ...defaultFormData.patientFactors, ...parsed.patientFactors },
+          seerRegistry: { ...defaultFormData.seerRegistry, ...parsed.seerRegistry },
+          prognosisData: parsed.prognosisData
+            ? { ...defaultFormData.prognosisData, ...parsed.prognosisData }
+            : defaultFormData.prognosisData,
+        };
       } catch {
         return defaultFormData;
       }
