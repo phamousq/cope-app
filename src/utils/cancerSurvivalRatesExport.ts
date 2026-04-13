@@ -313,7 +313,7 @@ export function exportToCancerSurvivalRates(data: ExportOptions): CancerSurvival
     ? mapHistology(data.scientificName, cancerType)
     : undefined;
 
-  if (!sex || monthDiagnosed === null) {
+  if (!sex) {
     return {
       error: 'Required fields missing',
       warnings,
