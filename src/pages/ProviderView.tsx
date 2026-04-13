@@ -573,8 +573,8 @@ export function ProviderView() {
         {/* 1. PATIENT DEMOGRAPHICS */}
         <SectionCard title="Patient Demographics">
           <div className="space-y-4">
-            {/* Basic demographics - Sex, Age, Ethnicity */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {/* Basic demographics - Sex, Age, Ethnicity, Date of Diagnosis */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <SelectInput
                 label="Sex"
                 value={formData.demographics.sex}
@@ -616,6 +616,17 @@ export function ProviderView() {
                 placeholder="e.g., Non-Hispanic White"
                 required
               />
+              <div className="flex flex-col">
+                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                  Date of Diagnosis
+                </label>
+                <input
+                  type="date"
+                  value={formData.demographics.dateOfDiagnosis}
+                  onChange={(e) => updateDemographics('dateOfDiagnosis', e.target.value)}
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent"
+                />
+              </div>
             </div>
 
             {/* Performance status & comorbidities with links */}
