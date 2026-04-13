@@ -563,7 +563,7 @@ export function ProviderView() {
                 value={formData.patientFactors.ecogStatus}
                 onChange={(v) => updatePatientFactors('ecogStatus', v)}
                 options={ECOG_OPTIONS}
-                helpUrl="https://www.ecog.org/general/contents.html"
+                helpUrl="https://www.mdcalc.com/calc/3170/eastern-cooperative-oncology-group-ecog-performance-status"
               />
               <SelectInput
                 label="Charlson Comorbidity Index"
@@ -577,7 +577,7 @@ export function ProviderView() {
                 value={formData.patientFactors.mgps}
                 onChange={(v) => updatePatientFactors('mgps', v)}
                 options={MGPS_OPTIONS}
-                helpUrl="https://www.mdcalc.com/m gps-modified-glasgow-prognostic-score"
+                helpUrl="https://www.mdcalc.com/mGPS-modified-glasgow-prognostic-score"
               />
             </div>
           </div>
