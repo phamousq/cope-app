@@ -154,10 +154,64 @@ interface JsonInspectorProps {
 
 function JsonInspector({ data }: JsonInspectorProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const jsonString = JSON.stringify(data, null, 2);
+  const today = new Date().toISOString().split('T')[0];
+
+  const na = "N/A";
+  const sex = data.demographics.sex || na;
+  const age = data.age || na;
+  const ageGroup = data.demographics.ageGroup || na;
+  const ethnicity = data.demographics.ethnicity || na;
+  const diagDate = data.demographics.dateOfDiagnosis || na;
+  const cancerType = data.cancerDetails.typeOfCancer || data.cancerDetails.scientificName || na;
+  const site = data.cancerLocation || na;
+  const size = data.cancerSize || na;
+  const tStage = data.tStage || na;
+  const nStage = data.nStage || na;
+  const mStage = data.mStage || na;
+  const metastatic = data.cancerDetails.whereSpread || na;
+  const lymph = data.lymphNodes || na;
+  const markers = data.clinicalMolecular.molecularGenomicMarkers || na;
+  const nlr = data.clinicalMolecular.nlr || na;
+  const cea = data.clinicalMolecular.cea || na;
+  const ca125 = data.clinicalMolecular.ca125 || na;
+  const psa = data.clinicalMolecular.psa || na;
+  const ldh = data.clinicalMolecular.ldh || na;
+  const goals = data.treatmentPlan.goals ? data.treatmentPlan.goals.join(", ") : na;
+  const treatments = data.treatmentPlan.treatments ? data.treatmentPlan.treatments.join(", ") : na;
+  const ecog = data.patientFactors.ecogStatus || na;
+  const cci = data.patientFactors.charlsonComorbidityIndex || na;
+  const mgps = data.patientFactors.mgps || na;
+
+  const lines = [
+    "--- Patient Demographics ---",
+    "Sex: " + sex + " | Age: " + age + " (" + ageGroup + ")",
+    "Ethnicity: " + ethnicity + " | Date of Diagnosis: " + diagDate,
+    "",
+    "--- Cancer Diagnosis ---",
+    "Primary Cancer / Histology: " + cancerType,
+    "Site: " + site + " | Size (mm): " + size,
+    "T: " + tStage + " | N: " + nStage + " | M: " + mStage,
+    "Metastatic Spread: " + metastatic + " | Lymph Nodes: " + lymph,
+    "",
+    "--- Molecular Markers ---",
+    "Markers: " + markers,
+    "",
+    "--- Biochemical Markers ---",
+    "NLR: " + nlr + " | CEA: " + cea + " | CA-125: " + ca125 + " | PSA: " + psa + " | LDH: " + ldh,
+    "",
+    "--- Treatment Plan ---",
+    "Goals: " + goals,
+    "Treatments: " + treatments,
+    "",
+    "--- Patient Factors ---",
+    "ECOG: " + ecog + " | CCI: " + cci + " | mGPS: " + mgps,
+    "",
+    "--- System ---",
+    "today: " + today,
+  ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-slate-900 dark:bg-slate-950 border-t border-slate-700">
+    <div className={"fixed bottom-0 left-0 right-0 bg-slate-900 dark:bg-slate-950 border-t border-slate-700 z-50 transition-all duration-200 " + (isExpanded ? "max-h-[70vh]" : "")}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-4 py-2 flex items-center justify-between text-slate-300 hover:text-slate-100 transition-colors"
@@ -166,21 +220,16 @@ function JsonInspector({ data }: JsonInspectorProps) {
           <ClipboardList className="w-4 h-4" />
           JSONL Data Inspector
         </span>
-        {isExpanded ? (
-          <ChevronDown className="w-4 h-4" />
-        ) : (
-          <ChevronUp className="w-4 h-4" />
-        )}
+        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
       </button>
       {isExpanded && (
-        <pre className="px-4 pb-4 text-xs text-green-400 font-mono overflow-auto max-h-64">
-          {jsonString}
+        <pre className="px-4 pb-4 text-xs text-green-400 font-mono overflow-auto max-h-[calc(70vh-48px)]">
+          {lines.join("\n")}
         </pre>
       )}
     </div>
   );
 }
-
 interface SelectInputProps {
   label: string;
   value: string;
@@ -529,8 +578,8 @@ export function ProviderView() {
         {/* 1. PATIENT DEMOGRAPHICS */}
         <SectionCard title="Patient Demographics">
           <div className="space-y-4">
-            {/* Basic demographics - Sex, Age, Ethnicity, Date of Diagnosis */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Basic demographics - Sex, Age, Ethnicity */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <SelectInput
                 label="Sex"
                 value={formData.demographics.sex}
@@ -570,13 +619,6 @@ export function ProviderView() {
                 value={formData.demographics.ethnicity}
                 onChange={(v) => updateDemographics('ethnicity', v)}
                 placeholder="e.g., Non-Hispanic White"
-                required
-              />
-              <TextInput
-                label="Date of Diagnosis"
-                value={formData.demographics.dateOfDiagnosis ?? ''}
-                onChange={(v) => updateDemographics('dateOfDiagnosis', v)}
-                type="date"
                 required
               />
             </div>
