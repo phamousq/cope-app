@@ -49,7 +49,7 @@ export interface ParsedClinicalData {
   };
 }
 
-export interface UseGeminiParseReturn {
+export interface UseTranscriptParseReturn {
   isParsing: boolean;
   error: string | null;
   parse: (transcript: string, apiKey: string, model: string) => Promise<ParsedClinicalData | null>;
@@ -105,7 +105,7 @@ Return ONLY a valid JSON object with these fields (no markdown, no explanation):
 TRANSCRIPT TO PARSE:
 `;
 
-export function useGeminiParse(): UseGeminiParseReturn {
+export function useTranscriptParse(): UseTranscriptParseReturn {
   const [isParsing, setIsParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,7 +116,7 @@ export function useGeminiParse(): UseGeminiParseReturn {
     }
 
     if (!apiKey) {
-      setError('Gemini API key not configured.');
+      setError('OpenRouter API key not configured.');
       return null;
     }
 
@@ -124,34 +124,30 @@ export function useGeminiParse(): UseGeminiParseReturn {
     setError(null);
 
     try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: PARSE_PROMPT + transcript }]
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            topK: 1,
-            topP: 0.1,
-            maxOutputTokens: 2048,
-          }
+          model,
+          messages: [{ role: 'user', content: PARSE_PROMPT + transcript }],
+          temperature: 0.1,
+          max_tokens: 2048,
         }),
       });
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(`Gemini API error ${response.status}: ${errText}`);
+        throw new Error(`OpenRouter API error ${response.status}: ${errText}`);
       }
 
       const data = await response.json();
-      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const rawText = data?.choices?.[0]?.message?.content;
 
       if (!rawText) {
-        throw new Error('No response from Gemini model.');
+        throw new Error('No response from AI model.');
       }
 
       // Strip markdown code fences if present
@@ -168,9 +164,8 @@ export function useGeminiParse(): UseGeminiParseReturn {
 
       const parsed = JSON.parse(jsonStr) as ParsedClinicalData;
 
-      // Basic validation
       if (typeof parsed !== 'object' || parsed === null) {
-        throw new Error('Invalid response format from Gemini.');
+        throw new Error('Invalid response format from AI.');
       }
 
       return parsed;

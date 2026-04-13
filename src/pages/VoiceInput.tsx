@@ -4,7 +4,7 @@ import { Mic, Square, Copy, Trash2, Upload, Download, Sparkles, ArrowRight, Load
 import { Button } from '@/components/ui/Button';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
 import { useAssemblyAITranscription } from '@/hooks/useAssemblyAIRest';
-import { useGeminiParse } from '@/hooks/useGeminiParse';
+import { useTranscriptParse } from '@/hooks/useTranscriptParse';
 import { useProviderData } from '@/contexts/ProviderDataContext';
 
 interface VoiceInputProps {
@@ -17,7 +17,7 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
   
   const recorder = useAudioRecorder();
   const assemblyAI = useAssemblyAITranscription();
-  const gemini = useGeminiParse();
+  const parser = useTranscriptParse();
   const { setFormData } = useProviderData();
   const navigate = useNavigate();
   
@@ -65,15 +65,15 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
   };
 
   const handleParseTranscript = async () => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
-    const model = (import.meta.env.VITE_GEMINI_MODEL as string) || 'gemini-2.0-flash';
+    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY as string;
+    const model = (import.meta.env.VITE_AI_MODEL as string) || 'openrouter/auto';
 
     if (!apiKey) {
       alert('VITE_GEMINI_API_KEY is not configured. Please add your Google AI Studio API key to the .env file.');
       return;
     }
 
-    const result = await gemini.parse(displayTranscript, apiKey, model);
+    const result = await parser.parse(displayTranscript, apiKey, model);
     if (!result) return;
 
     // Fill ProviderDataContext with parsed data
@@ -327,10 +327,10 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
           )}
           <Button
             onClick={handleParseTranscript}
-            disabled={!displayTranscript || gemini.isParsing}
+            disabled={!displayTranscript || parser.isParsing}
             className="text-sm bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-0"
           >
-            {gemini.isParsing ? (
+            {parser.isParsing ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 Parsing...
@@ -343,9 +343,9 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
             )}
           </Button>
         </div>
-        {gemini.error && (
+        {parser.error && (
           <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-700 dark:text-red-300">{gemini.error}</p>
+            <p className="text-sm text-red-700 dark:text-red-300">{parser.error}</p>
           </div>
         )}
       </div>
