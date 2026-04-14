@@ -107,12 +107,12 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
       // Cancer Details
       cancerDetails: {
         ...prev.cancerDetails,
-        cancerLocation: result.typeOfCancer || prev.cancerDetails.cancerLocation,
         cancerStage: (result.overallStage || prev.cancerDetails.cancerStage) as typeof prev.cancerDetails.cancerStage,
         scientificName: result.scientificName || prev.cancerDetails.scientificName,
         whereSpread: result.metastaticSpread || prev.cancerDetails.whereSpread,
       },
       // Top-level fields
+      cancerLocation: result.typeOfCancer || prev.cancerLocation,
       cancerSize: result.cancerSize || prev.cancerSize,
       // TNM stages + lymph
       tStage: result.tStage || prev.tStage,
