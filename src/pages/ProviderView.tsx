@@ -173,73 +173,6 @@ const initialFormData: ProviderFormData = {
   age: '',
 };
 
-interface JsonInspectorProps {
-  data: ProviderFormDataType;
-}
-
-function JsonInspector({ data }: JsonInspectorProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
-
-  // Build JSON output with today field
-  const jsonOutput = JSON.stringify({ ...data, today }, null, 2);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(jsonOutput);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-      // Fallback for older browsers or insecure contexts
-      const textArea = document.createElement('textarea');
-      textArea.value = jsonOutput;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        document.execCommand('copy');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      } catch (fallbackErr) {
-        console.error('Fallback copy also failed:', fallbackErr);
-      }
-      document.body.removeChild(textArea);
-    }
-  };
-
-  return (
-    <div className={"fixed bottom-0 left-0 right-0 bg-slate-900 dark:bg-slate-950 border-t border-slate-700 z-50 transition-all duration-200 " + (isExpanded ? "max-h-[70vh]" : "")}>
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-2 flex items-center justify-between text-slate-300 hover:text-slate-100 transition-colors"
-      >
-        <span className="flex items-center gap-2 text-sm font-mono">
-          <ClipboardList className="w-4 h-4" />
-          JSONL Data Inspector
-        </span>
-        {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-      </button>
-      {isExpanded && (
-        <div className="relative">
-          <button
-            onClick={handleCopy}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition-colors"
-          >
-            {copied ? 'Copied!' : 'Copy JSON'}
-          </button>
-          <pre className="px-4 pb-4 pt-2 text-xs text-green-400 font-mono overflow-auto max-h-[calc(70vh-48px)]">
-            {jsonOutput}
-          </pre>
-        </div>
-      )}
-    </div>
-  );
-}
 interface SelectInputProps {
   label: string;
   value: string;
@@ -1090,8 +1023,6 @@ export function ProviderView() {
         {/* </SectionCard> */}
       </main>
 
-      {/* JSONL Inspector */}
-      <JsonInspector data={formData as ProviderFormDataType} />
     </div>
   );
 }
