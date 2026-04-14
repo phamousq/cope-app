@@ -69,12 +69,27 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
     const model = (import.meta.env.VITE_AI_MODEL as string) || 'openrouter/auto';
 
     if (!apiKey) {
-      alert('VITE_GEMINI_API_KEY is not configured. Please add your Google AI Studio API key to the .env file.');
+      alert('VITE_OPENROUTER_API_KEY is not configured. Please add it to the .env file.');
       return;
     }
 
+    if (!displayTranscript.trim()) {
+      alert('No transcript to parse. Please record or paste text first.');
+      return;
+    }
+
+    console.log('[Fill Provider View] Starting...');
+    console.log('[Fill Provider View] Transcript length:', displayTranscript.length);
+    console.log('[Fill Provider View] Model:', model);
+
     const result = await parser.parse(displayTranscript, apiKey, model);
-    if (!result) return;
+    if (!result) {
+      console.log('[Fill Provider View] Parse failed, no result returned.');
+      return;
+    }
+
+    console.log('[Fill Provider View] Parse succeeded:', JSON.stringify(result, null, 2));
+    console.log('[Fill Provider View] Filling form data...');
 
     // Fill ProviderDataContext with parsed data
     setFormData((prev) => ({
@@ -140,7 +155,7 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
       },
     }));
 
-    // Navigate to Provider View
+    console.log('[Fill Provider View] Form filled. Navigating to /provider...');
     navigate('/provider');
   };
 
@@ -343,6 +358,16 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
             )}
           </Button>
         </div>
+        {parser.isParsing && (
+          <div className="mt-3">
+            <div className="h-2 w-full bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-orange-500 to-amber-500 animate-pulse" style={{ width: '60%' }} />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">
+              Sending transcript to AI model for processing...
+            </p>
+          </div>
+        )}
         {parser.error && (
           <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg">
             <p className="text-sm text-red-700 dark:text-red-300">{parser.error}</p>
