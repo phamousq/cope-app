@@ -770,17 +770,30 @@ export function ProviderView() {
 
         {/* 3. MOLECULAR & GENOMIC MARKERS */}
         <SectionCard title="Molecular & Genomic Markers">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
-              Biomarker & Mutation Results
-            </label>
-            <textarea
-              value={formData.clinicalMolecular.molecularGenomicMarkers}
-              onChange={(e) => updateClinicalMolecular('molecularGenomicMarkers', e.target.value)}
-              placeholder="e.g., MSI-H, KRAS G12C mutant, BRAF wild-type, EGFR exon 19 deletion, BRCA1/2 negative..."
-              rows={3}
-              className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
+                Biomarker & Mutation Results
+              </label>
+              <textarea
+                value={formData.clinicalMolecular.molecularGenomicMarkers}
+                onChange={(e) => updateClinicalMolecular('molecularGenomicMarkers', e.target.value)}
+                placeholder="e.g., MSI-H, KRAS G12C mutant, BRAF wild-type, EGFR exon 19 deletion, BRCA1/2 negative..."
+                rows={3}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
+                Cell Differentiation (Grade)
+              </label>
+              <SelectInput
+                label=""
+                value={formData.clinicalMolecular.cellDiff || ''}
+                onChange={(v) => updateClinicalMolecular('cellDiff', v)}
+                options={CELL_DIFF_OPTIONS}
+              />
+            </div>
           </div>
         </SectionCard>
 
@@ -847,30 +860,17 @@ export function ProviderView() {
 
         {/* 6. TREATMENT RESPONSE */}
         <SectionCard title="Treatment Response">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
-                Cell Differentiation (Grade)
-              </label>
-              <SelectInput
-                label=""
-                value={formData.clinicalMolecular.cellDiff || ''}
-                onChange={(v) => updateClinicalMolecular('cellDiff', v)}
-                options={CELL_DIFF_OPTIONS}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
-                Treatment Response Notes
-              </label>
-              <textarea
-                value={formData.clinicalMolecular.treatmentResponse}
-                onChange={(e) => updateClinicalMolecular('treatmentResponse', e.target.value)}
-                placeholder="e.g., Achieved pCR, RCB-I with minimal residual disease, progressing on chemotherapy..."
-                rows={3}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1 uppercase tracking-wide">
+              Treatment Response Notes
+            </label>
+            <textarea
+              value={formData.clinicalMolecular.treatmentResponse}
+              onChange={(e) => updateClinicalMolecular('treatmentResponse', e.target.value)}
+              placeholder="e.g., Achieved pCR, RCB-I with minimal residual disease, progressing on chemotherapy..."
+              rows={3}
+              className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent resize-none"
+            />
           </div>
         </SectionCard>
 

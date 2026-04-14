@@ -146,12 +146,9 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
         goals: result.treatmentGoals?.length ? result.treatmentGoals as typeof prev.treatmentPlan.goals : prev.treatmentPlan.goals,
         treatments: result.treatments?.length ? result.treatments as typeof prev.treatmentPlan.treatments : prev.treatmentPlan.treatments,
       },
-      // Prognosis Data - survival estimates
+      // Prognosis Data
       prognosisData: {
         ...prev.prognosisData,
-        additionalContext: result.survivalEstimates?.sixMonth
-          ? `Transcript-parsed survival estimates. Six-month: ${result.survivalEstimates.sixMonth}, One-year: ${result.survivalEstimates.oneYear || 'N/A'}, Two-year: ${result.survivalEstimates.twoYear || 'N/A'}, Five-year: ${result.survivalEstimates.fiveYear || 'N/A'}`
-          : prev.prognosisData.additionalContext,
       },
     }));
 
