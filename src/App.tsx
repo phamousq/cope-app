@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { NavBar } from '@/components/NavBar/NavBar';
+import { FormJsonPreview } from '@/components/FormJsonPreview';
 import { Landing, PatientView, PatientFormPage, ProviderView, VoiceInput, Backend } from '@/pages';
 import { TranscriptContext, getGlobalTranscript, setGlobalTranscript } from '@/contexts/TranscriptContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -29,6 +30,7 @@ function App() {
               <Route path="/voice" element={<VoiceInput onTranscriptChange={updateTranscript} />} />
               <Route path="/backend" element={<Backend />} />
             </Routes>
+            <FormJsonPreview />
             </ProviderDataProvider>
           </div>
         </BrowserRouter>
