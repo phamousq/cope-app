@@ -107,7 +107,7 @@ export function VoiceInput({ onTranscriptChange }: VoiceInputProps) {
       // Cancer Details
       cancerDetails: {
         ...prev.cancerDetails,
-        typeOfCancer: result.typeOfCancer || prev.cancerDetails.typeOfCancer,
+        cancerLocation: result.typeOfCancer || prev.cancerDetails.cancerLocation,
         cancerStage: (result.overallStage || prev.cancerDetails.cancerStage) as typeof prev.cancerDetails.cancerStage,
         scientificName: result.scientificName || prev.cancerDetails.scientificName,
         whereSpread: result.metastaticSpread || prev.cancerDetails.whereSpread,
