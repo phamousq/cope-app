@@ -631,15 +631,6 @@ export function ProviderView() {
                   onChange={(e) => {
                     const rawAge = e.target.value;
                     setFormData((prev) => ({ ...prev, age: rawAge }));
-                    const age = parseInt(rawAge);
-                    if (isNaN(age) || rawAge === '') {
-                      updateDemographics('ageGroup', '');
-                    } else if (age < 35) updateDemographics('ageGroup', '18-34');
-                    else if (age < 50) updateDemographics('ageGroup', '35-49');
-                    else if (age < 60) updateDemographics('ageGroup', '50-59');
-                    else if (age < 70) updateDemographics('ageGroup', '60-69');
-                    else if (age < 80) updateDemographics('ageGroup', '70-79');
-                    else updateDemographics('ageGroup', '80-90');
                   }}
                   placeholder="e.g., 55"
                   min="18"
