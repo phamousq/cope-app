@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Save, CheckCircle, AlertTriangle } from 'lucide-react';
 import { DemographicsSection } from './DemographicsSection';
 import { DiagnosisSection } from './DiagnosisSection';
 import { TreatmentPlanSection } from './TreatmentPlanSection';
@@ -30,17 +31,39 @@ interface PatientFormProps {
 }
 
 export function PatientForm({ onComplete }: PatientFormProps) {
-  const { formData, setFormData } = useProviderData();
+  const { formData, setFormData, saveStatus } = useProviderData();
   const [likelihoodExpectations, setLikelihoodExpectations] = useState<LikelihoodExpectations>(initialLikelihoodExpectations);
   const [survivalWithoutTreatment, setSurvivalWithoutTreatment] = useState<SurvivalWithoutTreatment>(initialSurvivalWithoutTreatment);
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   const hasSurvivalData = formData.prognosisData.survivalSources.length > 0;
 
+  /**
+   * Validate required fields before PDF generation.
+   * Returns an array of validation error messages.
+   */
+  const validateForm = (): string[] => {
+    const errors: string[] = [];
+    if (!formData.cancerDetails.typeOfCancer.trim()) {
+      errors.push('Type of Cancer (Primary Site) is required');
+    }
+    if (!hasSurvivalData) {
+      errors.push('At least one survival estimate is required in the Prognosis section');
+    }
+    return errors;
+  };
+
   const handleGeneratePDF = async () => {
     setError(null);
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors([]);
     setIsGenerating(true);
 
     try {
@@ -82,7 +105,7 @@ export function PatientForm({ onComplete }: PatientFormProps) {
     }
   };
 
-  const isFormValid = hasSurvivalData;
+  const isFormValid = hasSurvivalData && formData.cancerDetails.typeOfCancer.trim() !== '';
 
   const generatePlainText = () => {
     const lines: string[] = [];
@@ -185,12 +208,42 @@ export function PatientForm({ onComplete }: PatientFormProps) {
         onChange={(d) => setFormData({ ...formData, prognosisData: { ...formData.prognosisData, ...d } })}
       />
 
+      {validationErrors.length > 0 && (
+        <div className="flex flex-col gap-2 p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-700 dark:text-amber-300">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+            <p className="font-medium">Please fix the following before generating the PDF:</p>
+          </div>
+          <ul className="list-disc list-inside text-sm space-y-1">
+            {validationErrors.map((err, i) => (
+              <li key={i}>{err}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {error && (
         <div className="flex items-center gap-2 p-4 bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <p>{error}</p>
         </div>
       )}
+
+      {/* Autosave status indicator */}
+      <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+        {saveStatus === 'saving' && (
+          <>
+            <Save className="w-4 h-4 animate-pulse" />
+            <span>Saving...</span>
+          </>
+        )}
+        {saveStatus === 'saved' && (
+          <>
+            <CheckCircle className="w-4 h-4 text-green-500" />
+            <span>Saved</span>
+          </>
+        )}
+      </div>
 
       <div className="flex justify-end gap-4">
         <Button

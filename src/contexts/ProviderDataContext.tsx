@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import type { Demographics, CancerDetails, TreatmentPlan, PrognosisData } from '@/types';
 
 export interface ProviderFormData {
@@ -102,9 +102,12 @@ const defaultFormData: ProviderFormData = {
 
 export type FormDataUpdater = (prev: ProviderFormData) => ProviderFormData;
 
+type SaveStatus = 'saved' | 'saving' | 'idle';
+
 interface ProviderDataContextType {
   formData: ProviderFormData;
   setFormData: (data: ProviderFormData | FormDataUpdater) => void;
+  saveStatus: SaveStatus;
 }
 
 const ProviderDataContext = createContext<ProviderDataContextType | null>(null);
@@ -134,20 +137,49 @@ export function ProviderDataProvider({ children }: { children: ReactNode }) {
     return defaultFormData;
   });
 
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced localStorage write — batches rapid keystrokes into a single write
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    // Only save if we have meaningful data (not freshly reset to defaults)
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    setSaveStatus('saving')
+    saveTimer.current = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData))
+      setSaveStatus('saved')
+      // Reset to idle after 2s so the indicator clears
+      const resetTimer = setTimeout(() => setSaveStatus('idle'), 2000)
+      saveTimer.current = resetTimer
+    }, 500)
+
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
   }, [formData]);
 
-  const setFormData = (data: ProviderFormData | FormDataUpdater) => {
+  // Flush any pending save before page unload
+  useEffect(() => {
+    const handleUnload = () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData))
+      }
+    }
+    window.addEventListener('beforeunload', handleUnload)
+    return () => window.removeEventListener('beforeunload', handleUnload)
+  }, [formData])
+
+  const setFormData = useCallback((data: ProviderFormData | FormDataUpdater) => {
     if (typeof data === 'function') {
       setFormDataState(prev => (data as FormDataUpdater)(prev));
     } else {
       setFormDataState(data);
     }
-  };
+  }, []);
 
   return (
-    <ProviderDataContext.Provider value={{ formData, setFormData }}>
+    <ProviderDataContext.Provider value={{ formData, setFormData, saveStatus }}>
       {children}
     </ProviderDataContext.Provider>
   );
