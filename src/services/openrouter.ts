@@ -6,7 +6,7 @@
  */
 
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'openai/gpt-oss-120b:free';
+const DEFAULT_MODEL = 'liquid/lfm-2.5-1.2b-instruct:free';
 
 export interface AIAnalysisRequest {
   cancerType: string;

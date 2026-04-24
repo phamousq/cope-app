@@ -244,7 +244,7 @@ export function ProviderView() {
   const [csrWarnings, setCsrWarnings] = useState<string[]>([]);
   const { analysis, isLoading, error, analyze, clearAnalysis } = useAIAnalysis({
     apiKey: OPENROUTER_API_KEY,
-    model: 'openai/gpt-oss-120b:free',
+    model: 'liquid/lfm-2.5-1.2b-instruct:free',
   });
 
   const updateDemographics = useCallback(
