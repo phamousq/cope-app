@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Mic, User, Database, Menu, X, Sun, Moon, Monitor, ClipboardList } from 'lucide-react';
+import { Mic, User, Database, Menu, X, Sun, Moon, Monitor, ClipboardList, Loader2, Check, AlertCircle } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useProviderData } from '@/contexts/ProviderDataContext';
 
 const navItems = [
   { path: '/voice', label: 'Voice Input', icon: Mic },
@@ -10,6 +11,43 @@ const navItems = [
   { path: '/patient', label: 'Patient View', icon: User },
   { path: '/backend', label: 'Backend', icon: Database },
 ];
+
+function SaveIndicator() {
+  const { saveStatus } = useProviderData();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      setVisible(true);
+      const t = setTimeout(() => setVisible(false), 1800);
+      return () => clearTimeout(t);
+    } else if (saveStatus === 'saving') {
+      setVisible(true);
+    } else {
+      setVisible(false);
+    }
+  }, [saveStatus]);
+
+  if (!visible && saveStatus === 'idle') return null;
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+      {saveStatus === 'saving' && (
+        <>
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <span>Saving...</span>
+        </>
+      )}
+      {saveStatus === 'saved' && (
+        <>
+          <Check className="w-3.5 h-3.5 text-teal-500" />
+          <span>Saved</span>
+        </>
+      )}
+      {saveStatus === 'idle' && !visible && null}
+    </div>
+  );
+}
 
 export function NavBar() {
   const location = useLocation();
@@ -29,14 +67,19 @@ export function NavBar() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3 sm:py-4">
           {/* Logo section */}
-          <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-white font-bold text-base sm:text-lg">C</span>
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-bold text-base sm:text-lg">C</span>
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent truncate">COPE</h1>
+              </div>
+            </Link>
+            <div className="hidden sm:block">
+              <SaveIndicator />
             </div>
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 dark:from-orange-400 dark:to-amber-400 bg-clip-text text-transparent truncate">COPE</h1>
-            </div>
-          </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
